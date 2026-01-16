@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import AuthScreen from "./screens/AuthScreen.jsx";
 import BusinessScreen from "./screens/BusinessScreen.jsx";
+import BusinessMainScreen from "./screens/BusinessMainScreen.jsx";
+import BusinessMembersScreen from "./screens/BusinessMembersScreen.jsx";
+import BusinessMyScreen from "./screens/BusinessMyScreen.jsx";
+import BusinessPolicyScreen from "./screens/BusinessPolicyScreen.jsx";
 import CustomerScreen from "./screens/CustomerScreen.jsx";
 import CustomerMainScreen from "./screens/CustomerMainScreen.jsx";
 import CustomerMyScreen from "./screens/CustomerMyScreen.jsx";
@@ -13,6 +17,10 @@ const screens = {
   AUTH: "auth",
   ROLE: "role",
   BUSINESS: "business",
+  BUSINESS_MAIN: "business_main",
+  BUSINESS_MEMBERS: "business_members",
+  BUSINESS_MY: "business_my",
+  BUSINESS_POLICY: "business_policy",
   CUSTOMER: "customer",
   CUSTOMER_MAIN: "customer_main",
   CUSTOMER_TICKETS: "customer_tickets",
@@ -23,6 +31,11 @@ export default function App() {
   const [screen, setScreen] = useState(screens.LANDING);
   const [showHello, setShowHello] = useState(false);
   const [showSubtitle, setShowSubtitle] = useState(false);
+  const [businessPasses, setBusinessPasses] = useState([
+    { title: "블록핏 헬스장 1개월권", price: "150,000원" },
+    { title: "블록핏 헬스장 3개월권", price: "390,000원" },
+    { title: "블록핏 헬스장 PT 10회권", price: "500,000원" },
+  ]);
 
   const screenTitle = useMemo(() => {
     if (screen === screens.ROLE) {
@@ -152,7 +165,44 @@ export default function App() {
           )}
 
           {screen === screens.BUSINESS && (
-            <BusinessScreen />
+            <BusinessScreen onComplete={() => setScreen(screens.BUSINESS_MAIN)} />
+          )}
+
+          {screen === screens.BUSINESS_MAIN && (
+            <BusinessMainScreen
+              passes={businessPasses}
+              onMembers={() => setScreen(screens.BUSINESS_MEMBERS)}
+              onMain={() => setScreen(screens.BUSINESS_MAIN)}
+              onMy={() => setScreen(screens.BUSINESS_MY)}
+              onAddPolicy={() => setScreen(screens.BUSINESS_POLICY)}
+            />
+          )}
+
+          {screen === screens.BUSINESS_MEMBERS && (
+            <BusinessMembersScreen
+              onMembers={() => setScreen(screens.BUSINESS_MEMBERS)}
+              onMain={() => setScreen(screens.BUSINESS_MAIN)}
+              onMy={() => setScreen(screens.BUSINESS_MY)}
+            />
+          )}
+
+          {screen === screens.BUSINESS_MY && (
+            <BusinessMyScreen
+              onMembers={() => setScreen(screens.BUSINESS_MEMBERS)}
+              onMain={() => setScreen(screens.BUSINESS_MAIN)}
+              onMy={() => setScreen(screens.BUSINESS_MY)}
+              onLogout={() => setScreen(screens.LANDING)}
+            />
+          )}
+
+          {screen === screens.BUSINESS_POLICY && (
+            <BusinessPolicyScreen
+              onSave={(newPass) => {
+                setBusinessPasses((prev) => [newPass, ...prev]);
+                setScreen(screens.BUSINESS_MAIN);
+              }}
+              onCancel={() => setScreen(screens.BUSINESS_MAIN)}
+            />
           )}
 
           {screen === screens.CUSTOMER && (
