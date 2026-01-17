@@ -906,8 +906,9 @@ body {
 }
 
 .policy-text {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--muted);
+  font-weight: 600;
 }
 
 .duration-row {
@@ -915,6 +916,11 @@ body {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.price-row .policy-text {
+  font-size: 16px;
 }
 
 .refund-list {
@@ -940,8 +946,11 @@ body {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--primary-dark);
+  font-weight: 600;
+  justify-content: center;
+  text-align: center;
 }
 
 .policy-cta {

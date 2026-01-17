@@ -43,9 +43,9 @@ export default function App() {
   const [resumeExpiresAt, setResumeExpiresAt] = useState(0);
   const [resumeExpanded, setResumeExpanded] = useState(false);
   const [businessPasses, setBusinessPasses] = useState([
-    { title: "블록핏 헬스장 1개월권", price: "150,000원" },
-    { title: "블록핏 헬스장 3개월권", price: "390,000원" },
-    { title: "블록핏 헬스장 PT 10회권", price: "500,000원" },
+    { title: "블록핏 헬스장 1개월권", price: "0.05 ETH" },
+    { title: "블록핏 헬스장 3개월권", price: "0.12 ETH" },
+    { title: "블록핏 헬스장 PT 10회권", price: "0.2 ETH" },
   ]);
   const [businessTermsPass, setBusinessTermsPass] = useState(null);
 

@@ -62,7 +62,7 @@ export default function CustomerRefundScreen({ onBack, onComplete }) {
           <p className="detail-spacer">
             지금 환불하면 이용권 금액의{" "}
             <span className="detail-strong">60%</span>,{" "}
-            <span className="detail-strong">120,000원</span>이 환불돼요.
+            <span className="detail-strong">0.06 ETH</span>이 환불돼요.
           </p>
           <p className="detail-spacer">
             환불 과정은 추가 절차 없이 블록체인의 스마트 컨트랙트가{" "}

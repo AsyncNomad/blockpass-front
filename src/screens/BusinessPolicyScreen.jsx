@@ -8,6 +8,7 @@ const initialRefundRules = [{ period: "", unit: "일", refund: "" }];
 export default function BusinessPolicyScreen({ onSave, onCancel }) {
   const [step, setStep] = useState(1);
   const [passName, setPassName] = useState("");
+  const [passPriceEth, setPassPriceEth] = useState("");
   const [terms, setTerms] = useState("");
   const [durationValue, setDurationValue] = useState("");
   const [durationUnit, setDurationUnit] = useState("일");
@@ -23,7 +24,7 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
       return terms.trim().length > 0;
     }
     if (step === 3) {
-      if (!durationValue.trim()) {
+      if (!passPriceEth.trim() || !durationValue.trim()) {
         return false;
       }
       return refundRules.every(
@@ -34,7 +35,7 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
       return true;
     }
     return false;
-  }, [step, passName, terms, durationValue, refundRules]);
+  }, [step, passName, terms, passPriceEth, durationValue, refundRules]);
 
   const updateRefundRule = (index, field, value) => {
     setRefundRules((prev) =>
@@ -146,7 +147,18 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
 
         {step === 3 && (
           <div className="form-block">
-            <h2 className="form-title">환불 정책을 추가해볼게요.</h2>
+            <h2 className="form-title">가격 및 환불 정책을 추가해볼게요.</h2>
+            <div className="duration-row price-row">
+              <span className="policy-text">이용권 가격은</span>
+              <input
+                className="policy-input"
+                type="text"
+                placeholder=""
+                value={passPriceEth}
+                onChange={(event) => setPassPriceEth(event.target.value)}
+              />
+              <span className="policy-text">ETH에요.</span>
+            </div>
             <div className="duration-row">
               <span className="policy-text">총</span>
               <input
@@ -204,7 +216,7 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
                     <input
                       className="policy-input"
                       type="number"
-                      placeholder="%"
+                      placeholder=""
                       value={rule.refund}
                       onChange={(event) =>
                         updateRefundRule(index, "refund", event.target.value)
