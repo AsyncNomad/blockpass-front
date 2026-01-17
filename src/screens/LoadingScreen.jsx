@@ -21,7 +21,13 @@ export default function LoadingScreen({ message }) {
           </div>
         </div>
       </div>
-      <p className="loading-copy">{message}</p>
+      <p className="loading-copy">
+        {message.split(/\\n|\n/).map((line, index) => (
+          <span key={index} className="loading-line">
+            {line}
+          </span>
+        ))}
+      </p>
     </section>
   );
 }

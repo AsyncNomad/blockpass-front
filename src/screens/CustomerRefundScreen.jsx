@@ -32,7 +32,7 @@ export default function CustomerRefundScreen({ onBack, onComplete }) {
   if (showLoading) {
     return (
       <div className="main-screen">
-        <LoadingScreen message="블록체인의 스마트 컨트랙트에 기록된 규칙 그대로 본인의 지갑 주소로 환불중이에요." />
+        <LoadingScreen message="블록체인의 스마트 컨트랙트에 기록된 규정 그대로\n연결된 지갑 주소로 환불중이에요." />
       </div>
     );
   }

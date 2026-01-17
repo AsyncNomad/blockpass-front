@@ -203,7 +203,7 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
       )}
 
       {mode === "digital" && showLoading && (
-        <LoadingScreen message="계약 내용, 환불 규정, 결제 금액을 위변조 불가능하도록 블록체인에 업로드하고 있어요." />
+        <LoadingScreen message="계약 내용, 환불 규정, 결제 금액을 위변조 불가능하도록\n블록체인에 업로드하고 있어요." />
       )}
 
       {mode === "digital" && showPaidScreen && (

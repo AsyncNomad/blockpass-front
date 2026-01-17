@@ -91,7 +91,7 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
   if (showLoading) {
     return (
       <div className="main-screen business-main">
-        <LoadingScreen message="계약서와 환불 정책을 블록체인에 배포하고 있어요." />
+        <LoadingScreen message="계약서와 환불 정책을 위변조 불가능하도록\n블록체인에 배포하고 있어요." />
       </div>
     );
   }

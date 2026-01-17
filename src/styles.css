@@ -1265,6 +1265,14 @@ input {
   font-weight: 700;
   color: var(--primary-dark);
   line-height: 1.4;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.loading-line {
+  display: block;
 }
 
 .role {
