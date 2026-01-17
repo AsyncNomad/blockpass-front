@@ -12,6 +12,10 @@ export default function CustomerTicketsScreen({
   onMy,
   onTerms,
   onRefund,
+  resumeTicket,
+  resumeExpiresAt,
+  resumeExpanded,
+  onResumeConsumed,
 }) {
   const [activeTicket, setActiveTicket] = useState(null);
   const [expiresAt, setExpiresAt] = useState(0);
@@ -34,11 +38,13 @@ export default function CustomerTicketsScreen({
     return () => clearInterval(timer);
   }, [activeTicket, expiresAt]);
 
-  const openQr = (ticket) => {
+  const openQr = (ticket, options = {}) => {
     setActiveTicket(ticket);
-    setExpiresAt(Date.now() + 30000);
-    setTimeLeft(30);
-    setIsExpanded(false);
+    const nextExpiresAt = options.expiresAt || Date.now() + 30000;
+    setExpiresAt(nextExpiresAt);
+    const remaining = Math.max(0, Math.ceil((nextExpiresAt - Date.now()) / 1000));
+    setTimeLeft(remaining);
+    setIsExpanded(Boolean(options.expanded));
   };
 
   const closeQr = () => {
@@ -52,6 +58,19 @@ export default function CustomerTicketsScreen({
     setExpiresAt(Date.now() + 30000);
     setTimeLeft(30);
   };
+
+  useEffect(() => {
+    if (!resumeTicket) {
+      return;
+    }
+    openQr(resumeTicket, {
+      expiresAt: resumeExpiresAt,
+      expanded: resumeExpanded,
+    });
+    if (onResumeConsumed) {
+      onResumeConsumed();
+    }
+  }, [resumeTicket, resumeExpiresAt, resumeExpanded]);
 
   return (
     <div className="main-screen">
@@ -106,9 +125,8 @@ export default function CustomerTicketsScreen({
                   className="qr-action"
                   type="button"
                   onClick={() => {
-                    closeQr();
                     if (onTerms) {
-                      onTerms();
+                      onTerms(activeTicket, expiresAt, true);
                     }
                   }}
                 >
@@ -118,9 +136,8 @@ export default function CustomerTicketsScreen({
                   className="qr-action"
                   type="button"
                   onClick={() => {
-                    closeQr();
                     if (onRefund) {
-                      onRefund();
+                      onRefund(activeTicket, expiresAt, true);
                     }
                   }}
                 >

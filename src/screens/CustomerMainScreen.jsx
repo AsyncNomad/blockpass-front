@@ -18,7 +18,10 @@ export default function CustomerMainScreen({ onTickets, onMain, onMy, onAddPass 
           {recommendations.map((item) => (
             <div className="main-card" key={item.name}>
               <div className="main-card-title">{item.name}</div>
-              <div className="main-card-sub">현재 위치에서 {item.distance}</div>
+              <div className="main-card-sub">
+                <span className="pin" aria-hidden="true" />
+                {item.distance}
+              </div>
             </div>
           ))}
         </div>

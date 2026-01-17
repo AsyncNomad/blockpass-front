@@ -37,6 +37,9 @@ export default function App() {
   const [screen, setScreen] = useState(screens.LANDING);
   const [showHello, setShowHello] = useState(false);
   const [showSubtitle, setShowSubtitle] = useState(false);
+  const [resumeTicket, setResumeTicket] = useState(null);
+  const [resumeExpiresAt, setResumeExpiresAt] = useState(0);
+  const [resumeExpanded, setResumeExpanded] = useState(false);
   const [businessPasses, setBusinessPasses] = useState([
     { title: "블록핏 헬스장 1개월권", price: "150,000원" },
     { title: "블록핏 헬스장 3개월권", price: "390,000원" },
@@ -73,6 +76,13 @@ export default function App() {
       clearTimeout(nextTimer);
     };
   }, [screen]);
+
+  const goCustomerTickets = () => {
+    setResumeTicket(null);
+    setResumeExpiresAt(0);
+    setResumeExpanded(false);
+    setScreen(screens.CUSTOMER_TICKETS);
+  };
 
   return (
     <div className={`app ${screen === screens.AUTH ? "logo-docked" : ""}`}>
@@ -223,7 +233,7 @@ export default function App() {
 
           {screen === screens.CUSTOMER_MAIN && (
             <CustomerMainScreen
-              onTickets={() => setScreen(screens.CUSTOMER_TICKETS)}
+              onTickets={goCustomerTickets}
               onMain={() => setScreen(screens.CUSTOMER_MAIN)}
               onMy={() => setScreen(screens.CUSTOMER_MY)}
               onAddPass={() => setScreen(screens.CUSTOMER_ADD)}
@@ -232,17 +242,35 @@ export default function App() {
 
           {screen === screens.CUSTOMER_TICKETS && (
             <CustomerTicketsScreen
-              onTickets={() => setScreen(screens.CUSTOMER_TICKETS)}
+              onTickets={goCustomerTickets}
               onMain={() => setScreen(screens.CUSTOMER_MAIN)}
               onMy={() => setScreen(screens.CUSTOMER_MY)}
-              onTerms={() => setScreen(screens.CUSTOMER_TERMS)}
-              onRefund={() => setScreen(screens.CUSTOMER_REFUND)}
+              resumeTicket={resumeTicket}
+              resumeExpiresAt={resumeExpiresAt}
+              resumeExpanded={resumeExpanded}
+              onResumeConsumed={() => {
+                setResumeTicket(null);
+                setResumeExpiresAt(0);
+                setResumeExpanded(false);
+              }}
+              onTerms={(ticket, expiresAt, isExpanded) => {
+                setResumeTicket(ticket);
+                setResumeExpiresAt(expiresAt);
+                setResumeExpanded(isExpanded);
+                setScreen(screens.CUSTOMER_TERMS);
+              }}
+              onRefund={(ticket, expiresAt, isExpanded) => {
+                setResumeTicket(ticket);
+                setResumeExpiresAt(expiresAt);
+                setResumeExpanded(isExpanded);
+                setScreen(screens.CUSTOMER_REFUND);
+              }}
             />
           )}
 
           {screen === screens.CUSTOMER_MY && (
             <CustomerMyScreen
-              onTickets={() => setScreen(screens.CUSTOMER_TICKETS)}
+              onTickets={goCustomerTickets}
               onMain={() => setScreen(screens.CUSTOMER_MAIN)}
               onMy={() => setScreen(screens.CUSTOMER_MY)}
               onLogout={() => setScreen(screens.LANDING)}
@@ -264,7 +292,10 @@ export default function App() {
           )}
 
           {screen === screens.CUSTOMER_REFUND && (
-            <CustomerRefundScreen onBack={() => setScreen(screens.CUSTOMER_TICKETS)} />
+            <CustomerRefundScreen
+              onBack={() => setScreen(screens.CUSTOMER_TICKETS)}
+              onComplete={goCustomerTickets}
+            />
           )}
         </section>
       </main>
