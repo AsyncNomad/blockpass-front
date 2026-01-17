@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import BackButton from "./BackButton.jsx";
 
 const steps = [
   {
@@ -19,7 +20,7 @@ const steps = [
   },
 ];
 
-export default function BusinessScreen({ onComplete }) {
+export default function BusinessScreen({ onComplete, onBack }) {
   const [stepIndex, setStepIndex] = useState(-1);
   const [businessName, setBusinessName] = useState("");
   const [registrationNumber, setRegistrationNumber] = useState("");
@@ -56,6 +57,21 @@ export default function BusinessScreen({ onComplete }) {
     setStepIndex((prev) => Math.min(prev + 1, steps.length));
   };
 
+  const handleBack = () => {
+    setStepIndex((prev) => {
+      if (prev > 0) {
+        return prev - 1;
+      }
+      if (prev === 0) {
+        return -1;
+      }
+      return prev;
+    });
+    if (stepIndex <= -1 && onBack) {
+      onBack();
+    }
+  };
+
   const handleWalletConnect = async () => {
     setWalletError("");
     if (!window.ethereum) {
@@ -89,6 +105,7 @@ export default function BusinessScreen({ onComplete }) {
 
   return (
     <div className="card flow-screen business-flow" key="business">
+      {!isComplete && <BackButton onBack={handleBack} />}
       {isIntro && (
         <>
           <div className="greeting-block">
@@ -181,7 +198,7 @@ export default function BusinessScreen({ onComplete }) {
       )}
 
       {isComplete && (
-        <div className="complete-block">
+        <div className="complete-block no-back">
           <h2 className="complete-title">등록이 완료되었어요.</h2>
         </div>
       )}

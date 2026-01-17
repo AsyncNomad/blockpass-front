@@ -1,11 +1,13 @@
 import { useState } from "react";
+import BackButton from "./BackButton.jsx";
 
-export default function AuthScreen({ onSubmit }) {
+export default function AuthScreen({ onSubmit, onBack }) {
   const [mode, setMode] = useState("login");
   const isSignup = mode === "signup";
 
   return (
     <div className="card" key="auth">
+      {onBack && <BackButton onBack={onBack} />}
       <p className="card-title">시작해볼게요.</p>
       <div className="auth-panel" key={mode}>
         <form className="form">

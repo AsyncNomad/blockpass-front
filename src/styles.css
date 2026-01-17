@@ -96,6 +96,7 @@ body {
   gap: 18px;
   text-align: center;
   align-items: center;
+  position: relative;
 }
 
 .stack {
@@ -184,7 +185,7 @@ body {
 }
 
 .progress-wrap {
-  width: min(520px, calc(100% - 48px));
+  width: min(520px, calc(100% - 120px));
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -301,6 +302,17 @@ body {
   gap: 18px;
   padding: 16px 0 92px;
   animation: authSwap 0.4s ease;
+  position: relative;
+}
+
+.main-screen.customer-main {
+  font-family: "Manrope", "Apple SD Gothic Neo", sans-serif;
+  letter-spacing: 0;
+}
+
+.main-screen.customer-main input,
+.main-screen.customer-main button {
+  font-family: inherit;
 }
 
 .business-main {
@@ -437,6 +449,12 @@ body {
   gap: 14px;
   position: relative;
   animation: slideUp 0.3s ease;
+  max-height: min(640px, 85vh);
+  overflow-y: auto;
+}
+
+.qr-sheet.expanded {
+  padding-bottom: 22px;
 }
 
 .qr-close {
@@ -499,6 +517,69 @@ body {
   text-align: center;
   font-size: 13px;
   color: var(--muted);
+}
+
+.qr-expand {
+  align-self: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 111, 115, 0.2);
+  background: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.chevron {
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid var(--primary-dark);
+  border-bottom: 2px solid var(--primary-dark);
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+}
+
+.qr-sheet.expanded .chevron {
+  transform: rotate(-135deg);
+}
+
+.qr-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.qr-action {
+  border: none;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: rgba(15, 111, 115, 0.1);
+  color: var(--primary-dark);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.qr-action.danger {
+  background: rgba(192, 57, 43, 0.12);
+  color: #c0392b;
+}
+
+.detail-card {
+  margin-top: 8px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--primary-dark);
+  font-size: 13px;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detail-card p {
+  margin: 0;
 }
 
 @keyframes fadeIn {
@@ -975,6 +1056,26 @@ input {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.back-button {
+  position: fixed;
+  top: 7px;
+  left: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  border: none;
+  background: rgba(15, 111, 115, 0.12);
+  color: var(--primary-dark);
+  font-size: 18px;
+  display: grid;
+  place-items: center;
+  z-index: 4;
+}
+
+.no-back .back-button {
+  display: none;
 }
 
 .loading-page {

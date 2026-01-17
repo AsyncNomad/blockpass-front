@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import BackButton from "./BackButton.jsx";
 
 const steps = [
   {
@@ -7,7 +8,7 @@ const steps = [
   },
 ];
 
-export default function CustomerScreen({ onComplete }) {
+export default function CustomerScreen({ onComplete, onBack }) {
   const [stepIndex, setStepIndex] = useState(-1);
   const [walletAddress, setWalletAddress] = useState("");
   const [walletError, setWalletError] = useState("");
@@ -59,6 +60,7 @@ export default function CustomerScreen({ onComplete }) {
 
   return (
     <div className="card flow-screen business-flow" key="customer">
+      {onBack && !isComplete && <BackButton onBack={onBack} />}
       {isIntro && (
         <>
           <div className="greeting-block">
@@ -114,7 +116,7 @@ export default function CustomerScreen({ onComplete }) {
       )}
 
       {isComplete && (
-        <div className="complete-block">
+        <div className="complete-block no-back">
           <h2 className="complete-title">등록이 완료되었어요.</h2>
         </div>
       )}

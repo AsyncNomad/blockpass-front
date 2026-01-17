@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import BackButton from "./BackButton.jsx";
 import LoadingScreen from "./LoadingScreen.jsx";
 
 const units = ["일", "시간", "분"];
@@ -97,7 +98,7 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
 
   if (showComplete) {
     return (
-      <div className="main-screen business-main">
+      <div className="main-screen business-main no-back">
         <section className="main-section">
           <div className="complete-block">
             <h2 className="complete-title">등록이 완료되었어요.</h2>
@@ -110,6 +111,7 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
   return (
     <div className="main-screen business-main">
       <section className="main-section flow-section">
+        {onCancel && <BackButton onBack={onCancel} />}
         <div className="progress-wrap">
           <div className="progress-track">
             <span className="progress-fill" style={{ width: `${(step / 4) * 100}%` }} />

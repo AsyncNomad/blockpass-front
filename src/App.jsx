@@ -8,6 +8,8 @@ import BusinessPolicyScreen from "./screens/BusinessPolicyScreen.jsx";
 import CustomerScreen from "./screens/CustomerScreen.jsx";
 import CustomerMainScreen from "./screens/CustomerMainScreen.jsx";
 import CustomerMyScreen from "./screens/CustomerMyScreen.jsx";
+import CustomerRefundScreen from "./screens/CustomerRefundScreen.jsx";
+import CustomerTermsScreen from "./screens/CustomerTermsScreen.jsx";
 import CustomerTicketsScreen from "./screens/CustomerTicketsScreen.jsx";
 import CustomerAddPassScreen from "./screens/CustomerAddPassScreen.jsx";
 import LandingScreen from "./screens/LandingScreen.jsx";
@@ -27,6 +29,8 @@ const screens = {
   CUSTOMER_TICKETS: "customer_tickets",
   CUSTOMER_MY: "customer_my",
   CUSTOMER_ADD: "customer_add",
+  CUSTOMER_TERMS: "customer_terms",
+  CUSTOMER_REFUND: "customer_refund",
 };
 
 export default function App() {
@@ -167,7 +171,10 @@ export default function App() {
           )}
 
           {screen === screens.BUSINESS && (
-            <BusinessScreen onComplete={() => setScreen(screens.BUSINESS_MAIN)} />
+            <BusinessScreen
+              onComplete={() => setScreen(screens.BUSINESS_MAIN)}
+              onBack={() => setScreen(screens.ROLE)}
+            />
           )}
 
           {screen === screens.BUSINESS_MAIN && (
@@ -208,7 +215,10 @@ export default function App() {
           )}
 
           {screen === screens.CUSTOMER && (
-            <CustomerScreen onComplete={() => setScreen(screens.CUSTOMER_MAIN)} />
+            <CustomerScreen
+              onComplete={() => setScreen(screens.CUSTOMER_MAIN)}
+              onBack={() => setScreen(screens.ROLE)}
+            />
           )}
 
           {screen === screens.CUSTOMER_MAIN && (
@@ -225,6 +235,8 @@ export default function App() {
               onTickets={() => setScreen(screens.CUSTOMER_TICKETS)}
               onMain={() => setScreen(screens.CUSTOMER_MAIN)}
               onMy={() => setScreen(screens.CUSTOMER_MY)}
+              onTerms={() => setScreen(screens.CUSTOMER_TERMS)}
+              onRefund={() => setScreen(screens.CUSTOMER_REFUND)}
             />
           )}
 
@@ -243,7 +255,16 @@ export default function App() {
               onMain={() => setScreen(screens.CUSTOMER_MAIN)}
               onMy={() => setScreen(screens.CUSTOMER_MY)}
               onComplete={() => setScreen(screens.CUSTOMER_TICKETS)}
+              onBack={() => setScreen(screens.CUSTOMER_MAIN)}
             />
+          )}
+
+          {screen === screens.CUSTOMER_TERMS && (
+            <CustomerTermsScreen onBack={() => setScreen(screens.CUSTOMER_TICKETS)} />
+          )}
+
+          {screen === screens.CUSTOMER_REFUND && (
+            <CustomerRefundScreen onBack={() => setScreen(screens.CUSTOMER_TICKETS)} />
           )}
         </section>
       </main>

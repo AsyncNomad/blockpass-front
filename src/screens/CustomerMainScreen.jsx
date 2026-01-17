@@ -8,7 +8,7 @@ const recommendations = [
 
 export default function CustomerMainScreen({ onTickets, onMain, onMy, onAddPass }) {
   return (
-    <div className="main-screen">
+    <div className="main-screen customer-main">
       <div className="main-search">
         <input type="text" placeholder="주변 시설을 검색해보세요" />
       </div>

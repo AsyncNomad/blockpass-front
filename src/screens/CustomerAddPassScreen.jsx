@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import BackButton from "./BackButton.jsx";
 import LoadingScreen from "./LoadingScreen.jsx";
 
 const merchants = [
@@ -7,7 +8,7 @@ const merchants = [
   { id: "study-1", name: "스테디 독서실", passes: ["자유석 1개월", "지정석 3개월"] },
 ];
 
-export default function CustomerAddPassScreen({ onComplete }) {
+export default function CustomerAddPassScreen({ onComplete, onBack }) {
   const [mode, setMode] = useState("choice");
   const [step, setStep] = useState(1);
   const [query, setQuery] = useState("");
@@ -87,6 +88,7 @@ export default function CustomerAddPassScreen({ onComplete }) {
     <div className="main-screen">
       {mode === "choice" && (
         <section className="main-section">
+          {onBack && <BackButton onBack={onBack} />}
           <h2 className="main-title">새로운 이용권을 추가해볼게요.</h2>
           <div className="role-grid add-pass-grid">
             <button className="role" type="button">
@@ -119,6 +121,7 @@ export default function CustomerAddPassScreen({ onComplete }) {
 
       {mode === "digital" && !showPaidScreen && !showLoading && (
         <section className="main-section flow-section">
+          {onBack && <BackButton onBack={onBack} />}
           <div className="progress-wrap">
             <div className="progress-track">
               <span className="progress-fill" style={{ width: `${(step / 3) * 100}%` }} />

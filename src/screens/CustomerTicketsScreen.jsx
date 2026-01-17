@@ -6,10 +6,17 @@ const tickets = [
   { title: "스테디 독서실 1개월권", period: "2025.10.01~2025.10.31" },
 ];
 
-export default function CustomerTicketsScreen({ onTickets, onMain, onMy }) {
+export default function CustomerTicketsScreen({
+  onTickets,
+  onMain,
+  onMy,
+  onTerms,
+  onRefund,
+}) {
   const [activeTicket, setActiveTicket] = useState(null);
   const [expiresAt, setExpiresAt] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     if (!activeTicket || !expiresAt) {
@@ -31,12 +38,14 @@ export default function CustomerTicketsScreen({ onTickets, onMain, onMy }) {
     setActiveTicket(ticket);
     setExpiresAt(Date.now() + 30000);
     setTimeLeft(30);
+    setIsExpanded(false);
   };
 
   const closeQr = () => {
     setActiveTicket(null);
     setExpiresAt(0);
     setTimeLeft(0);
+    setIsExpanded(false);
   };
 
   const refreshQr = () => {
@@ -64,7 +73,7 @@ export default function CustomerTicketsScreen({ onTickets, onMain, onMy }) {
       </section>
       {activeTicket && (
         <div className="qr-overlay" role="dialog" aria-modal="true">
-          <div className="qr-sheet">
+          <div className={`qr-sheet ${isExpanded ? "expanded" : ""}`}>
             <button className="qr-close" type="button" onClick={closeQr}>
               닫기
             </button>
@@ -83,6 +92,45 @@ export default function CustomerTicketsScreen({ onTickets, onMain, onMy }) {
             <div className="qr-timer">
               {timeLeft > 0 ? `유효시간 ${timeLeft}s` : "만료됨"}
             </div>
+            <button
+              className="qr-expand"
+              type="button"
+              onClick={() => setIsExpanded((prev) => !prev)}
+              aria-expanded={isExpanded}
+            >
+              <span className="chevron" />
+            </button>
+            {isExpanded && (
+              <div className="qr-actions">
+                <button
+                  className="qr-action"
+                  type="button"
+                  onClick={() => {
+                    closeQr();
+                    if (onTerms) {
+                      onTerms();
+                    }
+                  }}
+                >
+                  세부 약관 확인하기
+                </button>
+                <button
+                  className="qr-action"
+                  type="button"
+                  onClick={() => {
+                    closeQr();
+                    if (onRefund) {
+                      onRefund();
+                    }
+                  }}
+                >
+                  환불하기
+                </button>
+                <button className="qr-action danger" type="button">
+                  시설 파산신고
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
