@@ -329,6 +329,11 @@ body {
   color: var(--primary-dark);
 }
 
+.profile-name {
+  font-size: 22px;
+  text-align: center;
+}
+
 .main-cards {
   display: flex;
   flex-direction: column;
@@ -556,6 +561,8 @@ body {
   color: var(--primary-dark);
   font-size: 14px;
   font-weight: 600;
+  align-self: center;
+  margin-top: auto;
 }
 
 .logout-button:hover {
