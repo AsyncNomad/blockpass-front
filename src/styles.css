@@ -968,9 +968,10 @@ input {
 }
 
 .loading-copy {
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.6;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  line-height: 1.4;
 }
 
 .role {
