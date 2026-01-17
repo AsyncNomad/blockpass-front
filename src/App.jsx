@@ -9,6 +9,7 @@ import CustomerScreen from "./screens/CustomerScreen.jsx";
 import CustomerMainScreen from "./screens/CustomerMainScreen.jsx";
 import CustomerMyScreen from "./screens/CustomerMyScreen.jsx";
 import CustomerTicketsScreen from "./screens/CustomerTicketsScreen.jsx";
+import CustomerAddPassScreen from "./screens/CustomerAddPassScreen.jsx";
 import LandingScreen from "./screens/LandingScreen.jsx";
 import RoleScreen from "./screens/RoleScreen.jsx";
 
@@ -25,6 +26,7 @@ const screens = {
   CUSTOMER_MAIN: "customer_main",
   CUSTOMER_TICKETS: "customer_tickets",
   CUSTOMER_MY: "customer_my",
+  CUSTOMER_ADD: "customer_add",
 };
 
 export default function App() {
@@ -214,6 +216,7 @@ export default function App() {
               onTickets={() => setScreen(screens.CUSTOMER_TICKETS)}
               onMain={() => setScreen(screens.CUSTOMER_MAIN)}
               onMy={() => setScreen(screens.CUSTOMER_MY)}
+              onAddPass={() => setScreen(screens.CUSTOMER_ADD)}
             />
           )}
 
@@ -231,6 +234,15 @@ export default function App() {
               onMain={() => setScreen(screens.CUSTOMER_MAIN)}
               onMy={() => setScreen(screens.CUSTOMER_MY)}
               onLogout={() => setScreen(screens.LANDING)}
+            />
+          )}
+
+          {screen === screens.CUSTOMER_ADD && (
+            <CustomerAddPassScreen
+              onTickets={() => setScreen(screens.CUSTOMER_TICKETS)}
+              onMain={() => setScreen(screens.CUSTOMER_MAIN)}
+              onMy={() => setScreen(screens.CUSTOMER_MY)}
+              onComplete={() => setScreen(screens.CUSTOMER_TICKETS)}
             />
           )}
         </section>

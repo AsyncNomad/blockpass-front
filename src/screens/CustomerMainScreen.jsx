@@ -6,7 +6,7 @@ const recommendations = [
   { name: "코어바디 피트니스", distance: "2.1km" },
 ];
 
-export default function CustomerMainScreen({ onTickets, onMain, onMy }) {
+export default function CustomerMainScreen({ onTickets, onMain, onMy, onAddPass }) {
   return (
     <div className="main-screen">
       <div className="main-search">
@@ -23,6 +23,9 @@ export default function CustomerMainScreen({ onTickets, onMain, onMy }) {
           ))}
         </div>
       </section>
+      <button className="policy-cta" type="button" onClick={onAddPass}>
+        새로운 이용권 추가하기
+      </button>
       <MainNav active="main" onTickets={onTickets} onMain={onMain} onMy={onMy} />
     </div>
   );
