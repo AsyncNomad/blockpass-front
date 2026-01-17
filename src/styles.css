@@ -454,10 +454,58 @@ body {
   color: var(--primary-dark);
 }
 
+.ticket-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ticket-remaining {
+  font-size: 12px;
+  color: var(--primary-dark);
+  font-weight: 600;
+  background: rgba(15, 111, 115, 0.08);
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 .ticket-period {
   margin-top: 8px;
   font-size: 13px;
   color: var(--muted);
+}
+
+.ticket-progress {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ticket-bar {
+  flex: 1;
+  height: 8px;
+  background: rgba(15, 111, 115, 0.12);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.ticket-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--primary-dark);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.ticket-percent {
+  font-size: 12px;
+  color: var(--primary-dark);
+  font-weight: 600;
+  min-width: 36px;
+  text-align: right;
 }
 
 .ticket-button {
@@ -939,6 +987,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  animation: staggerIn 0.5s ease both;
 }
 
 .refund-line {
@@ -951,6 +1000,31 @@ body {
   font-weight: 600;
   justify-content: center;
   text-align: center;
+}
+
+.stagger-block > * {
+  opacity: 0;
+  animation: staggerIn 0.5s ease forwards;
+}
+
+.stagger-block > *:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.stagger-block > *:nth-child(2) {
+  animation-delay: 0.25s;
+}
+
+.stagger-block > *:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.stagger-block > *:nth-child(4) {
+  animation-delay: 0.55s;
+}
+
+.stagger-block > *:nth-child(5) {
+  animation-delay: 0.7s;
 }
 
 .policy-cta {

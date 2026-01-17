@@ -146,7 +146,7 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
         )}
 
         {step === 3 && (
-          <div className="form-block">
+          <div className="form-block stagger-block">
             <h2 className="form-title">가격 및 환불 정책을 추가해볼게요.</h2>
             <div className="duration-row price-row">
               <span className="policy-text">이용권 가격은</span>
@@ -164,7 +164,7 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
               <input
                 className="policy-input"
                 type="number"
-                placeholder="기간"
+                placeholder=""
                 value={durationValue}
                 onChange={(event) => setDurationValue(event.target.value)}
               />
@@ -190,7 +190,7 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
                     <input
                       className="policy-input"
                       type="number"
-                      placeholder="기간"
+                      placeholder=""
                       value={rule.period}
                       onChange={(event) =>
                         updateRefundRule(index, "period", event.target.value)

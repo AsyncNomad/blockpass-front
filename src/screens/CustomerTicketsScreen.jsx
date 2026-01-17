@@ -2,9 +2,86 @@ import { useEffect, useState } from "react";
 import MainNav from "./MainNav.jsx";
 
 const tickets = [
-  { title: "블록핏 헬스장 3개월권", period: "2025.12.25~2026.02.24" },
-  { title: "스테디 독서실 1개월권", period: "2025.10.01~2025.10.31" },
+  {
+    title: "블록핏 헬스장 3개월권",
+    period: "2025.12.25~2026.02.24",
+    startDate: "2025.12.25",
+    endDate: "2026.02.24",
+  },
+  {
+    title: "스테디 독서실 1개월권",
+    period: "2025.10.01~2025.10.31",
+    startDate: "2025.10.01",
+    endDate: "2025.10.31",
+  },
+  {
+    title: "코어바디 피트니스 6시간권",
+    period: "2025.10.20 10:00~2025.10.20 16:00",
+    startAt: "2025-10-20T10:00:00",
+    endAt: "2025-10-20T16:00:00",
+  },
+  {
+    title: "스테디 독서실 90분권",
+    period: "2025.10.21 18:00~2025.10.21 19:30",
+    startAt: "2025-10-21T18:00:00",
+    endAt: "2025-10-21T19:30:00",
+  },
 ];
+
+const parseDate = (value) => {
+  const [year, month, day] = value.split(".").map((part) => Number(part));
+  return new Date(year, month - 1, day).getTime();
+};
+
+const parseDateRange = (startDate, endDate) => {
+  const start = parseDate(startDate);
+  const end = parseDate(endDate);
+  if (!start || !end) {
+    return { start: 0, end: 0 };
+  }
+  const endOfDay = new Date(end);
+  endOfDay.setHours(23, 59, 59, 999);
+  return { start, end: endOfDay.getTime() };
+};
+
+const getTicketTimes = (ticket) => {
+  if (ticket.startAt && ticket.endAt) {
+    return { start: Date.parse(ticket.startAt), end: Date.parse(ticket.endAt) };
+  }
+  if (ticket.startDate && ticket.endDate) {
+    return parseDateRange(ticket.startDate, ticket.endDate);
+  }
+  return { start: 0, end: 0 };
+};
+
+const getProgress = (ticket) => {
+  const { start, end } = getTicketTimes(ticket);
+  const now = Date.now();
+  if (!start || !end || end <= start) {
+    return 0;
+  }
+  const percent = ((now - start) / (end - start)) * 100;
+  return Math.min(100, Math.max(0, Math.round(percent)));
+};
+
+const getRemainingLabel = (ticket) => {
+  const { start, end } = getTicketTimes(ticket);
+  const now = Date.now();
+  if (!start || !end || now >= end) {
+    return "만료됨";
+  }
+  const remainingSeconds = Math.max(0, Math.floor((end - now) / 1000));
+  const days = Math.floor(remainingSeconds / 86400);
+  const hours = Math.floor((remainingSeconds % 86400) / 3600);
+  const minutes = Math.floor((remainingSeconds % 3600) / 60);
+  if (days > 0) {
+    return `${days}일 남음`;
+  }
+  if (hours > 0) {
+    return `${hours}시간 남음`;
+  }
+  return `${Math.max(1, minutes)}분 남음`;
+};
 
 export default function CustomerTicketsScreen({
   onTickets,
@@ -84,8 +161,24 @@ export default function CustomerTicketsScreen({
               type="button"
               onClick={() => openQr(ticket)}
             >
-              <div className="ticket-title">{ticket.title}</div>
+              <div className="ticket-header">
+                <div className="ticket-title">{ticket.title}</div>
+                <div className="ticket-remaining">{getRemainingLabel(ticket)}</div>
+              </div>
               <div className="ticket-period">{ticket.period}</div>
+              <div className="ticket-progress">
+                <div className="ticket-bar">
+                  <span
+                    className="ticket-bar-fill"
+                    style={{
+                      width: `${getProgress(ticket)}%`,
+                    }}
+                  />
+                </div>
+                <span className="ticket-percent">
+                  {getProgress(ticket)}%
+                </span>
+              </div>
             </button>
           ))}
         </div>
