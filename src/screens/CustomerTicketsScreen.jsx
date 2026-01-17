@@ -152,7 +152,15 @@ export default function CustomerTicketsScreen({
   return (
     <div className="main-screen">
       <section className="main-section">
-        <h2 className="main-title">나의 이용권</h2>
+        <div className="section-header">
+          <span className="section-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" role="img">
+              <path d="M4 8h16v8H4z" />
+              <path d="M8 8v8M16 8v8" />
+            </svg>
+          </span>
+          <h2 className="main-title">나의 이용권</h2>
+        </div>
         <div className="ticket-list">
           {tickets.map((ticket) => (
             <button
@@ -162,7 +170,15 @@ export default function CustomerTicketsScreen({
               onClick={() => openQr(ticket)}
             >
               <div className="ticket-header">
-                <div className="ticket-title">{ticket.title}</div>
+                <div className="ticket-title-row">
+                  <span className="ticket-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" role="img">
+                      <path d="M5 7h14v10H5z" />
+                      <path d="M8 7v10M16 7v10" />
+                    </svg>
+                  </span>
+                  <div className="ticket-title">{ticket.title}</div>
+                </div>
                 <div className="ticket-remaining">{getRemainingLabel(ticket)}</div>
               </div>
               <div className="ticket-period">{ticket.period}</div>
@@ -192,56 +208,75 @@ export default function CustomerTicketsScreen({
                 닫기
               </button>
             </div>
-            <div className="qr-box">
-              <div className="qr-grid" aria-hidden="true" />
-              {timeLeft === 0 && (
-                <div className="qr-expired">
-                  <p>유효 시간이 만료되었어요.</p>
-                  <button className="refresh-button" type="button" onClick={refreshQr}>
-                    새로고침
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="qr-timer">
-              {timeLeft > 0 ? `유효시간 ${timeLeft}s` : "만료됨"}
-            </div>
-            <button
-              className="qr-expand"
-              type="button"
-              onClick={() => setIsExpanded((prev) => !prev)}
-              aria-expanded={isExpanded}
-            >
-              <span className="chevron" />
-            </button>
-            {isExpanded && (
-              <div className="qr-actions">
-                <button
-                  className="qr-action"
-                  type="button"
-                  onClick={() => {
-                    if (onTerms) {
-                      onTerms(activeTicket, expiresAt, true);
-                    }
-                  }}
-                >
-                  세부 약관 확인하기
-                </button>
-                <button
-                  className="qr-action"
-                  type="button"
-                  onClick={() => {
-                    if (onRefund) {
-                      onRefund(activeTicket, expiresAt, true);
-                    }
-                  }}
-                >
-                  환불하기
-                </button>
-                <button className="qr-action danger" type="button">
-                  시설 파산신고
+            {getRemainingLabel(activeTicket) === "만료됨" ? (
+              <div className="qr-box expired-only">
+                <p>
+                  만료된 사용권이에요.
+                  <br />
+                  나의 이용권 메뉴에서 제거할까요?
+                </p>
+                <button className="refresh-button danger" type="button">
+                  네, 삭제할게요.
                 </button>
               </div>
+            ) : (
+              <>
+                <div className="qr-box">
+                  <div className="qr-grid" aria-hidden="true" />
+                  {timeLeft === 0 && (
+                    <div className="qr-expired">
+                      <p>유효 시간이 만료되었어요.</p>
+                      <button
+                        className="refresh-button"
+                        type="button"
+                        onClick={refreshQr}
+                      >
+                        새로고침
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="qr-timer">
+                  {timeLeft > 0 ? `유효시간 ${timeLeft}s` : "만료됨"}
+                </div>
+                <button
+                  className="qr-expand"
+                  type="button"
+                  onClick={() => setIsExpanded((prev) => !prev)}
+                  aria-expanded={isExpanded}
+                >
+                  <span className="chevron" />
+                </button>
+                {isExpanded && (
+                  <div className="qr-actions">
+                    <button
+                      className="qr-action"
+                      type="button"
+                      onClick={() => {
+                        if (onTerms) {
+                          onTerms(activeTicket, expiresAt, true);
+                        }
+                      }}
+                    >
+                      세부 약관 확인하기
+                    </button>
+                    <button
+                      className="qr-action"
+                      type="button"
+                      onClick={() => {
+                        if (onRefund) {
+                          onRefund(activeTicket, expiresAt, true);
+                        }
+                      }}
+                    >
+                      환불하기
+                    </button>
+                    <button className="qr-action danger" type="button">
+                      시설 파산신고
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

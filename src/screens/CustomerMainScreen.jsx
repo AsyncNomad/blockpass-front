@@ -9,14 +9,20 @@ const recommendations = [
 export default function CustomerMainScreen({ onTickets, onMain, onMy, onAddPass }) {
   return (
     <div className="main-screen customer-main">
-      <div className="main-search">
-        <input type="text" placeholder="주변 시설을 검색해보세요" />
-      </div>
       <section className="main-section">
-        <h2 className="main-title">주변 추천</h2>
-        <div className="main-cards">
+        <div className="section-header sticky-title">
+          <span className="section-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" role="img">
+              <path d="M12 3a7 7 0 0 1 7 7c0 5-7 11-7 11S5 15 5 10a7 7 0 0 1 7-7z" />
+              <circle cx="12" cy="10" r="2.5" />
+            </svg>
+          </span>
+          <h2 className="main-title">주변 추천</h2>
+        </div>
+        <div className="main-cards grid-cards">
           {recommendations.map((item) => (
             <div className="main-card" key={item.name}>
+              <div className="card-image" aria-hidden="true" />
               <div className="main-card-title">{item.name}</div>
               <div className="main-card-sub">
                 <span className="pin" aria-hidden="true" />
