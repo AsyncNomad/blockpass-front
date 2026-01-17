@@ -59,7 +59,7 @@ export default function CustomerScreen({ onComplete, onBack }) {
   }, [isComplete, onComplete]);
 
   return (
-    <div className="card flow-screen business-flow" key="customer">
+    <div className="flow-screen business-flow" key="customer">
       {onBack && !isComplete && <BackButton onBack={onBack} />}
       {isIntro && (
         <>

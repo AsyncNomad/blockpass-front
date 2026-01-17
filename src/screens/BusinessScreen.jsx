@@ -104,7 +104,7 @@ export default function BusinessScreen({ onComplete, onBack }) {
   }, [isComplete, onComplete]);
 
   return (
-    <div className="card flow-screen business-flow" key="business">
+    <div className="flow-screen business-flow" key="business">
       {!isComplete && <BackButton onBack={handleBack} />}
       {isIntro && (
         <>

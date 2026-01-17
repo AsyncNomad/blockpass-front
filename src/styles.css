@@ -1385,12 +1385,14 @@ body {
 }
 
 .member-card {
-  background: #fff;
-  border-radius: 16px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-m);
   padding: 14px 16px;
-  border: 1px solid rgba(23, 162, 164, 0.16);
-  display: grid;
-  gap: 6px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-s);
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .member-name {
@@ -1404,13 +1406,31 @@ body {
   color: var(--text-muted);
 }
 
-.member-status {
-  font-size: 12px;
-  color: var(--primary-dark);
-  background: rgba(23, 162, 164, 0.12);
-  padding: 4px 10px;
-  border-radius: 999px;
-  width: fit-content;
+.member-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: var(--primary-light);
+  color: var(--primary);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.member-avatar svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.member-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .logo-wrap {
@@ -1729,6 +1749,19 @@ input {
 
 .role-card {
   margin-top: -48px;
+  width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.role-title-main {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin: 0;
+  text-align: center;
 }
 
 .role:hover {

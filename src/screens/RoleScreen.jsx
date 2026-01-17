@@ -2,9 +2,9 @@ import BackButton from "./BackButton.jsx";
 
 export default function RoleScreen({ onBusiness, onCustomer, onBack }) {
   return (
-    <div className="card role-card" key="role">
+    <div className="role-card" key="role">
       {onBack && <BackButton onBack={onBack} />}
-      <p className="card-copy">역할을 선택해주세요.</p>
+      <p className="role-title-main">역할을 선택해주세요.</p>
       <div className="role-grid">
         <button className="role" type="button" onClick={onBusiness}>
           <span className="role-icon" aria-hidden="true">

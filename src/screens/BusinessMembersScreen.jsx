@@ -1,9 +1,9 @@
 import BusinessNav from "./BusinessNav.jsx";
 
 const members = [
-  { name: "김지은", pass: "3개월권", status: "이용중" },
-  { name: "박지호", pass: "PT 10회권", status: "대기" },
-  { name: "이하린", pass: "1개월권", status: "이용중" },
+  { name: "김지은", pass: "3개월권" },
+  { name: "박지호", pass: "PT 10회권" },
+  { name: "이하린", pass: "1개월권" },
 ];
 
 export default function BusinessMembersScreen({ onMembers, onMain, onMy }) {
@@ -14,9 +14,16 @@ export default function BusinessMembersScreen({ onMembers, onMain, onMy }) {
         <div className="member-list">
           {members.map((member) => (
             <div className="member-card" key={member.name}>
-              <div className="member-name">{member.name}</div>
-              <div className="member-meta">{member.pass}</div>
-              <span className="member-status">{member.status}</span>
+              <div className="member-avatar" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="img">
+                  <circle cx="12" cy="8" r="3" />
+                  <path d="M6 19a6 6 0 0 1 12 0" />
+                </svg>
+              </div>
+              <div className="member-info">
+                <div className="member-name">{member.name}</div>
+                <div className="member-meta">{member.pass}</div>
+              </div>
             </div>
           ))}
         </div>
