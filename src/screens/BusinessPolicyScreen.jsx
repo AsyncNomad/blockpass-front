@@ -49,11 +49,32 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
     setRefundRules((prev) => [...prev, { period: "", unit: "일", refund: "" }]);
   };
 
+  const removeRefundRule = (index) => {
+    setRefundRules((prev) => {
+      if (prev.length <= 1) {
+        return prev;
+      }
+      return prev.filter((_, ruleIndex) => ruleIndex !== index);
+    });
+  };
+
   const handleNext = () => {
     if (!canNext) {
       return;
     }
     setStep((prev) => Math.min(prev + 1, 4));
+  };
+
+  const handleBack = () => {
+    setStep((prev) => {
+      if (prev > 1) {
+        return prev - 1;
+      }
+      if (onCancel) {
+        onCancel();
+      }
+      return prev;
+    });
   };
 
   const handleDeploy = () => {
@@ -112,7 +133,7 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
   return (
     <div className="main-screen business-main">
       <section className="main-section flow-section">
-        {onCancel && <BackButton onBack={onCancel} />}
+        {onCancel && <BackButton onBack={handleBack} />}
         <div className="progress-wrap">
           <div className="progress-track">
             <span className="progress-fill" style={{ width: `${(step / 4) * 100}%` }} />
@@ -147,96 +168,115 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
 
         {step === 3 && (
           <div className="form-block stagger-block">
-            <h2 className="form-title">가격 및 환불 정책을 추가해볼게요.</h2>
-            <div className="duration-row price-row">
-              <span className="policy-text">이용권 가격은</span>
-              <input
-                className="policy-input"
-                type="text"
-                placeholder=""
-                value={passPriceEth}
-                onChange={(event) => setPassPriceEth(event.target.value)}
-              />
-              <span className="policy-text">ETH에요.</span>
-            </div>
-            <div className="duration-row">
-              <span className="policy-text">총</span>
-              <input
-                className="policy-input"
-                type="number"
-                placeholder=""
-                value={durationValue}
-                onChange={(event) => setDurationValue(event.target.value)}
-              />
-              <select
-                className="policy-select"
-                value={durationUnit}
-                onChange={(event) => setDurationUnit(event.target.value)}
-              >
-                {units.map((unit) => (
-                  <option key={unit} value={unit}>
-                    {unit}
-                  </option>
+            <div className="policy-step">
+              <div className="policy-fixed">
+              <h2 className="form-title">가격 및 환불 정책을 추가해볼게요.</h2>
+              <div className="duration-row price-row">
+                <span className="policy-text">이용권 가격은</span>
+                <input
+                  className="policy-input"
+                  type="text"
+                  placeholder=""
+                  value={passPriceEth}
+                  onChange={(event) => setPassPriceEth(event.target.value)}
+                />
+                <span className="policy-text">ETH에요.</span>
+              </div>
+              <div className="duration-row">
+                <span className="policy-text">총</span>
+                <input
+                  className="policy-input"
+                  type="number"
+                  placeholder=""
+                  value={durationValue}
+                  onChange={(event) => setDurationValue(event.target.value)}
+                />
+                <select
+                  className="policy-select"
+                  value={durationUnit}
+                  onChange={(event) => setDurationUnit(event.target.value)}
+                >
+                  {units.map((unit) => (
+                    <option key={unit} value={unit}>
+                      {unit}
+                    </option>
                 ))}
               </select>
               <span className="policy-text">이용 가능한 이용권이에요.</span>
             </div>
-
-            <div className="refund-list">
-              {refundRules.map((rule, index) => (
-                <div className="refund-card" key={`refund-${index}`}>
-                  <div className="refund-line">
-                    사용자가
-                    <input
-                      className="policy-input"
-                      type="number"
-                      placeholder=""
-                      value={rule.period}
-                      onChange={(event) =>
-                        updateRefundRule(index, "period", event.target.value)
-                      }
-                    />
-                    <select
-                      className="policy-select"
-                      value={rule.unit}
-                      onChange={(event) =>
-                        updateRefundRule(index, "unit", event.target.value)
-                      }
-                    >
-                      {units.map((unit) => (
-                        <option key={unit} value={unit}>
-                          {unit}
-                        </option>
-                      ))}
-                    </select>
-                    미만으로 사용하면
-                  </div>
-                  <div className="refund-line">
-                    이용권 금액의
-                    <input
-                      className="policy-input"
-                      type="number"
-                      placeholder=""
-                      value={rule.refund}
-                      onChange={(event) =>
-                        updateRefundRule(index, "refund", event.target.value)
-                      }
-                    />
-                    %만큼 환불해요
-                  </div>
-                </div>
-              ))}
             </div>
-            <button className="add-rule" type="button" onClick={addRefundRule}>
-              +
-            </button>
+
+            <div className="refund-scroll">
+              <div className="refund-list">
+                {refundRules.map((rule, index) => (
+                  <div className="refund-card" key={`refund-${index}`}>
+                    <div className="refund-line">
+                      사용자가
+                      <input
+                        className="policy-input"
+                        type="number"
+                        placeholder=""
+                        value={rule.period}
+                        onChange={(event) =>
+                          updateRefundRule(index, "period", event.target.value)
+                        }
+                      />
+                      <select
+                        className="policy-select"
+                        value={rule.unit}
+                        onChange={(event) =>
+                          updateRefundRule(index, "unit", event.target.value)
+                        }
+                      >
+                        {units.map((unit) => (
+                          <option key={unit} value={unit}>
+                            {unit}
+                          </option>
+                        ))}
+                      </select>
+                      미만으로 사용하면
+                    </div>
+                    <div className="refund-line">
+                      이용권 금액의
+                      <input
+                        className="policy-input"
+                        type="number"
+                        placeholder=""
+                        value={rule.refund}
+                        onChange={(event) =>
+                          updateRefundRule(index, "refund", event.target.value)
+                        }
+                      />
+                      %만큼 환불해요
+                    </div>
+                    {refundRules.length > 1 && (
+                      <div className="refund-actions">
+                        <button
+                          className="remove-rule"
+                          type="button"
+                          onClick={() => removeRefundRule(index)}
+                        >
+                          -
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button className="add-rule" type="button" onClick={addRefundRule}>
+                +
+              </button>
+            </div>
+            </div>
           </div>
         )}
 
         {step === 4 && (
           <div className="form-block">
             <h2 className="form-title">
-              고객이 볼 수 있도록 계약서를 블록체인에 배포할게요.
+              계약서를
+              <br />
+              블록체인에 배포할게요
             </h2>
             <button className="wallet-button" type="button" onClick={handleDeploy}>
               메타마스크 지갑으로 배포하기

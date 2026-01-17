@@ -6,7 +6,7 @@ export default function AuthScreen({ onSubmit, onBack }) {
   const isSignup = mode === "signup";
 
   return (
-    <div className="card" key="auth">
+    <div className="card auth-card" key="auth">
       {onBack && <BackButton onBack={onBack} />}
       <p className="card-title">시작해볼게요.</p>
       <div className="auth-panel" key={mode}>
@@ -14,21 +14,21 @@ export default function AuthScreen({ onSubmit, onBack }) {
           {isSignup && (
             <label>
               이름
-              <input type="text" placeholder="홍길동" />
+              <input type="text" />
             </label>
           )}
           <label>
             아이디
-            <input type="text" placeholder="blockpass_id" />
+            <input type="text" />
           </label>
           <label>
             비밀번호
-            <input type="password" placeholder="8자리 이상" />
+            <input type="password" />
           </label>
           {isSignup && (
             <label>
               비밀번호 확인
-              <input type="password" placeholder="비밀번호 확인" />
+              <input type="password" />
             </label>
           )}
         </form>

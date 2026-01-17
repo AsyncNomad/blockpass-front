@@ -1,9 +1,9 @@
 import MainNav from "./MainNav.jsx";
 
 const recommendations = [
-  { name: "블록핏 헬스장", distance: "0.8km" },
-  { name: "스테디 독서실", distance: "1.4km" },
-  { name: "코어바디 피트니스", distance: "2.1km" },
+  { name: "블록핏 헬스장", distance: "0.8", unit: "km" },
+  { name: "스테디 독서실", distance: "1.4", unit: "km" },
+  { name: "코어바디 피트니스", distance: "2.1", unit: "km" },
 ];
 
 export default function CustomerMainScreen({ onTickets, onMain, onMy, onAddPass }) {
@@ -26,7 +26,8 @@ export default function CustomerMainScreen({ onTickets, onMain, onMy, onAddPass 
               <div className="main-card-title">{item.name}</div>
               <div className="main-card-sub">
                 <span className="pin" aria-hidden="true" />
-                {item.distance}
+                <span className="num">{item.distance}</span>
+                <span className="unit">{item.unit}</span>
               </div>
             </div>
           ))}

@@ -1,7 +1,5 @@
 export default function LandingScreen() {
   return (
-    <div className="card stack" key="landing">
-      <div className="logo-spacer" aria-hidden="true" />
-    </div>
+    <div className="landing-stage" key="landing" aria-hidden="true" />
   );
 }

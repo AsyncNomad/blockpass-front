@@ -71,7 +71,7 @@ export default function App() {
     }, 1300);
     const nextTimer = setTimeout(() => {
       setScreen(screens.AUTH);
-    }, 3200);
+    }, 2100);
 
     return () => {
       clearTimeout(subtitleTimer);

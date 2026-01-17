@@ -162,41 +162,49 @@ export default function CustomerTicketsScreen({
           <h2 className="main-title">나의 이용권</h2>
         </div>
         <div className="ticket-list">
-          {tickets.map((ticket) => (
-            <button
-              className="ticket-card ticket-button"
-              key={ticket.title}
-              type="button"
-              onClick={() => openQr(ticket)}
-            >
-              <div className="ticket-header">
-                <div className="ticket-title-row">
-                  <span className="ticket-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" role="img">
-                      <path d="M5 7h14v10H5z" />
-                      <path d="M8 7v10M16 7v10" />
-                    </svg>
+          {tickets.map((ticket) => {
+            const remaining = getRemainingLabel(ticket);
+            const isExpired = remaining === "만료됨";
+            const percent = getProgress(ticket);
+            return (
+              <button
+                className={`ticket-card ticket-button ${isExpired ? "is-expired" : ""}`}
+                key={ticket.title}
+                type="button"
+                onClick={() => openQr(ticket)}
+              >
+                <div className="ticket-header">
+                  <div className="ticket-title-row">
+                    <span className="ticket-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" role="img">
+                        <path d="M5 7h14v10H5z" />
+                        <path d="M8 7v10M16 7v10" />
+                      </svg>
+                    </span>
+                    <div className="ticket-title">{ticket.title}</div>
+                  </div>
+                  <div className={`ticket-remaining ${isExpired ? "is-expired" : ""}`}>
+                    {remaining}
+                  </div>
+                </div>
+                <div className="ticket-period">{ticket.period}</div>
+                <div className="ticket-progress">
+                  <div className="ticket-bar">
+                    <span
+                      className="ticket-bar-fill"
+                      style={{
+                        width: `${percent}%`,
+                      }}
+                    />
+                  </div>
+                  <span className="ticket-percent">
+                    <span className="num">{percent}</span>
+                    <span className="unit">%</span>
                   </span>
-                  <div className="ticket-title">{ticket.title}</div>
                 </div>
-                <div className="ticket-remaining">{getRemainingLabel(ticket)}</div>
-              </div>
-              <div className="ticket-period">{ticket.period}</div>
-              <div className="ticket-progress">
-                <div className="ticket-bar">
-                  <span
-                    className="ticket-bar-fill"
-                    style={{
-                      width: `${getProgress(ticket)}%`,
-                    }}
-                  />
-                </div>
-                <span className="ticket-percent">
-                  {getProgress(ticket)}%
-                </span>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </section>
       {activeTicket && (
