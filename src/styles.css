@@ -370,6 +370,11 @@ body {
   border: 1px solid rgba(23, 162, 164, 0.16);
 }
 
+.main-card-button {
+  text-align: left;
+  cursor: pointer;
+}
+
 .main-card-title {
   font-size: 16px;
   font-weight: 700;
@@ -494,11 +499,17 @@ body {
 }
 
 .qr-close {
-  align-self: flex-end;
   background: transparent;
   border: none;
   color: var(--muted);
   font-size: 13px;
+}
+
+.qr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .qr-ticket-title {

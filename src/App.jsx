@@ -5,6 +5,7 @@ import BusinessMainScreen from "./screens/BusinessMainScreen.jsx";
 import BusinessMembersScreen from "./screens/BusinessMembersScreen.jsx";
 import BusinessMyScreen from "./screens/BusinessMyScreen.jsx";
 import BusinessPolicyScreen from "./screens/BusinessPolicyScreen.jsx";
+import BusinessTermsScreen from "./screens/BusinessTermsScreen.jsx";
 import CustomerScreen from "./screens/CustomerScreen.jsx";
 import CustomerMainScreen from "./screens/CustomerMainScreen.jsx";
 import CustomerMyScreen from "./screens/CustomerMyScreen.jsx";
@@ -24,6 +25,7 @@ const screens = {
   BUSINESS_MEMBERS: "business_members",
   BUSINESS_MY: "business_my",
   BUSINESS_POLICY: "business_policy",
+  BUSINESS_TERMS: "business_terms",
   CUSTOMER: "customer",
   CUSTOMER_MAIN: "customer_main",
   CUSTOMER_TICKETS: "customer_tickets",
@@ -45,6 +47,7 @@ export default function App() {
     { title: "블록핏 헬스장 3개월권", price: "390,000원" },
     { title: "블록핏 헬스장 PT 10회권", price: "500,000원" },
   ]);
+  const [businessTermsPass, setBusinessTermsPass] = useState(null);
 
   const screenTitle = useMemo(() => {
     if (screen === screens.ROLE) {
@@ -194,6 +197,10 @@ export default function App() {
               onMain={() => setScreen(screens.BUSINESS_MAIN)}
               onMy={() => setScreen(screens.BUSINESS_MY)}
               onAddPolicy={() => setScreen(screens.BUSINESS_POLICY)}
+              onTerms={(pass) => {
+                setBusinessTermsPass(pass);
+                setScreen(screens.BUSINESS_TERMS);
+              }}
             />
           )}
 
@@ -221,6 +228,13 @@ export default function App() {
                 setScreen(screens.BUSINESS_MAIN);
               }}
               onCancel={() => setScreen(screens.BUSINESS_MAIN)}
+            />
+          )}
+
+          {screen === screens.BUSINESS_TERMS && (
+            <BusinessTermsScreen
+              pass={businessTermsPass}
+              onBack={() => setScreen(screens.BUSINESS_MAIN)}
             />
           )}
 

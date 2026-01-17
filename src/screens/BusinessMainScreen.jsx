@@ -6,6 +6,7 @@ export default function BusinessMainScreen({
   onMain,
   onMy,
   onAddPolicy,
+  onTerms,
 }) {
   return (
     <div className="main-screen business-main">
@@ -17,10 +18,15 @@ export default function BusinessMainScreen({
         <h2 className="main-title">판매중인 이용권</h2>
         <div className="main-cards">
           {passes.map((pass) => (
-            <div className="main-card" key={pass.title}>
+            <button
+              className="main-card main-card-button"
+              key={pass.title}
+              type="button"
+              onClick={() => onTerms?.(pass)}
+            >
               <div className="main-card-title">{pass.title}</div>
               <div className="main-card-sub">{pass.price}</div>
-            </div>
+            </button>
           ))}
         </div>
       </section>

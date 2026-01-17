@@ -217,10 +217,12 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
       {showTerms && (
         <div className="qr-overlay" role="dialog" aria-modal="true">
           <div className="qr-sheet">
-            <button className="qr-close" type="button" onClick={() => setShowTerms(false)}>
-              닫기
-            </button>
-            <div className="qr-ticket-title">이용 약관 및 환불 규정</div>
+            <div className="qr-header">
+              <div className="qr-ticket-title">이용 약관 및 환불 규정</div>
+              <button className="qr-close" type="button" onClick={() => setShowTerms(false)}>
+                닫기
+              </button>
+            </div>
             <div className="terms-body">
               <p>이용권은 결제 즉시 활성화되며 환불 규정은 스마트 컨트랙트로 고정돼요.</p>
               <p>동의 시 메타마스크 지갑 서명이 필요합니다.</p>

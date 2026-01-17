@@ -93,10 +93,12 @@ export default function CustomerTicketsScreen({
       {activeTicket && (
         <div className="qr-overlay" role="dialog" aria-modal="true">
           <div className={`qr-sheet ${isExpanded ? "expanded" : ""}`}>
-            <button className="qr-close" type="button" onClick={closeQr}>
-              닫기
-            </button>
-            <div className="qr-ticket-title">{activeTicket.title}</div>
+            <div className="qr-header">
+              <div className="qr-ticket-title">{activeTicket.title}</div>
+              <button className="qr-close" type="button" onClick={closeQr}>
+                닫기
+              </button>
+            </div>
             <div className="qr-box">
               <div className="qr-grid" aria-hidden="true" />
               {timeLeft === 0 && (
