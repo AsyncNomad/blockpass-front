@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+// C:\Project\kaist\2_week\blockpass-front\src\screens\BusinessScreen.jsx
+import { useEffect, useMemo, useState, useRef } from "react";
 import BackButton from "./BackButton.jsx";
+import api from "../utils/api";
 
 const steps = [
   {
@@ -22,11 +24,17 @@ const steps = [
 
 export default function BusinessScreen({ onComplete, onBack }) {
   const [stepIndex, setStepIndex] = useState(-1);
+  const [userName, setUserName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [registrationNumber, setRegistrationNumber] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
+  const [address, setAddress] = useState("");
+  const [lat, setLat] = useState(null);
+  const [lng, setLng] = useState(null);
   const [walletAddress, setWalletAddress] = useState("");
   const [walletError, setWalletError] = useState("");
+  const mapRef = useRef(null);
+  const markerRef = useRef(null);
 
   const isIntro = stepIndex === -1;
   const isComplete = stepIndex === steps.length;
@@ -45,15 +53,85 @@ export default function BusinessScreen({ onComplete, onBack }) {
       return registrationNumber.trim().length > 0;
     }
     if (stepIndex === 2) {
-      return locationQuery.trim().length > 0;
+      return address.length > 0;
     }
     if (stepIndex === 3) {
       return walletAddress.trim().length > 0;
     }
     return false;
-  }, [stepIndex, businessName, registrationNumber, locationQuery, walletAddress]);
+  }, [stepIndex, businessName, registrationNumber, address, walletAddress]);
+
+  // 사용자 정보 불러오기
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const response = await api.get('/auth/me');
+        setUserName(response.data.name);
+      } catch (error) {
+        console.error("사용자 정보 불러오기 실패:", error);
+        const storedName = localStorage.getItem('user_name');
+        if (storedName) {
+          setUserName(storedName);
+        }
+      }
+    };
+    fetchUserInfo();
+  }, []);
+
+  // 카카오맵 초기화 (3단계에서만)
+  useEffect(() => {
+    if (stepIndex !== 2) return;
+
+    const container = document.getElementById('map');
+    if (!container) return;
+
+    const options = {
+      center: new window.kakao.maps.LatLng(36.366, 127.344),
+      level: 3
+    };
+    
+    mapRef.current = new window.kakao.maps.Map(container, options);
+  }, [stepIndex]);
+
+  // 주소 검색
+  const handleSearchAddress = () => {
+    if (!locationQuery.trim()) {
+      alert("주소를 입력해주세요.");
+      return;
+    }
+
+    const geocoder = new window.kakao.maps.services.Geocoder();
+    
+    geocoder.addressSearch(locationQuery, (result, status) => {
+      if (status === window.kakao.maps.services.Status.OK) {
+        const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
+        
+        mapRef.current.setCenter(coords);
+        
+        if (markerRef.current) {
+          markerRef.current.setMap(null);
+        }
+        
+        markerRef.current = new window.kakao.maps.Marker({
+          map: mapRef.current,
+          position: coords
+        });
+        
+        setAddress(result[0].address_name);
+        setLat(parseFloat(result[0].y));
+        setLng(parseFloat(result[0].x));
+        
+        alert(`주소가 확인되었습니다: ${result[0].address_name}`);
+      } else {
+        alert("주소를 찾을 수 없습니다. 다시 입력해주세요.");
+      }
+    });
+  };
 
   const handleNext = () => {
+    if (!isStepValid) {
+      return;
+    }
     setStepIndex((prev) => Math.min(prev + 1, steps.length));
   };
 
@@ -89,19 +167,34 @@ export default function BusinessScreen({ onComplete, onBack }) {
     }
   };
 
+  const handleComplete = async () => {
+    try {
+      await api.patch('/auth/profile', {
+        business_name: businessName,
+        registration_number: registrationNumber,
+        wallet_address: walletAddress,
+        address: address,
+        lat: lat,
+        lng: lng
+      });
+      
+      setTimeout(() => {
+        if (onComplete) {
+          onComplete();
+        }
+      }, 1200);
+    } catch (error) {
+      console.error("사업자 정보 저장 실패:", error);
+      alert("정보 저장에 실패했습니다. 다시 시도해주세요.");
+    }
+  };
+
   useEffect(() => {
     if (!isComplete) {
       return;
     }
-
-    const timer = setTimeout(() => {
-      if (onComplete) {
-        onComplete();
-      }
-    }, 1200);
-
-    return () => clearTimeout(timer);
-  }, [isComplete, onComplete]);
+    handleComplete();
+  }, [isComplete]);
 
   return (
     <div className="flow-screen business-flow" key="business">
@@ -109,7 +202,7 @@ export default function BusinessScreen({ onComplete, onBack }) {
       {isIntro && (
         <>
           <div className="greeting-block">
-            <h2 className="greeting-title">홍길동 사장님</h2>
+            <h2 className="greeting-title">{userName ? `${userName} 사장님` : "사장님"}</h2>
             <p className="greeting-sub">
               사업장 정보를 등록하기 위해 필요한 몇 가지 질문 답변해주세요.
             </p>
@@ -154,16 +247,53 @@ export default function BusinessScreen({ onComplete, onBack }) {
             )}
             {stepIndex === 2 && (
               <>
-                <input
-                  className="input-field"
-                  type="text"
-                  placeholder="주소 또는 장소를 검색해주세요"
-                  value={locationQuery}
-                  onChange={(event) => setLocationQuery(event.target.value)}
-                />
-                <div className="map-box" aria-label="지도 영역">
-                  지도 영역
+                <div style={{ display: 'flex', gap: '8px', width: 'min(360px, 100%)' }}>
+                  <input
+                    className="input-field"
+                    type="text"
+                    placeholder="주소 또는 장소를 검색해주세요"
+                    value={locationQuery}
+                    onChange={(event) => setLocationQuery(event.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSearchAddress()}
+                    style={{ flex: 1 }}
+                  />
+                  <button 
+                    onClick={handleSearchAddress}
+                    style={{
+                      padding: '12px 20px',
+                      backgroundColor: '#0f6f73',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '12px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      fontSize: '14px'
+                    }}
+                  >
+                    검색
+                  </button>
                 </div>
+                {address && (
+                  <div style={{ 
+                    fontSize: '14px', 
+                    color: '#0f6f73', 
+                    marginTop: '8px',
+                    fontWeight: '600'
+                  }}>
+                    ✓ {address}
+                  </div>
+                )}
+                <div 
+                  id="map" 
+                  style={{ 
+                    width: 'min(360px, 100%)', 
+                    height: '300px',
+                    borderRadius: '16px',
+                    marginTop: '12px',
+                    border: '1px solid rgba(15, 111, 115, 0.2)',
+                    background: 'rgba(255, 255, 255, 0.8)'
+                  }}
+                />
               </>
             )}
             {stepIndex === 3 && (

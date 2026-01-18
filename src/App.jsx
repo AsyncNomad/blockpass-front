@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import api from "./utils/api"; // ← 추가!
 import AuthScreen from "./screens/AuthScreen.jsx";
 import BusinessScreen from "./screens/BusinessScreen.jsx";
 import BusinessMainScreen from "./screens/BusinessMainScreen.jsx";
@@ -15,10 +16,13 @@ import CustomerTicketsScreen from "./screens/CustomerTicketsScreen.jsx";
 import CustomerAddPassScreen from "./screens/CustomerAddPassScreen.jsx";
 import LandingScreen from "./screens/LandingScreen.jsx";
 import RoleScreen from "./screens/RoleScreen.jsx";
+import OcrResultScreen from "./screens/OcrResultScreen.jsx";
+import SignupComplete from "./screens/SignupComplete.jsx";
 
 const screens = {
   LANDING: "landing",
   AUTH: "auth",
+  SIGNUP_COMPLETE: "signup_complete",
   ROLE: "role",
   BUSINESS: "business",
   BUSINESS_MAIN: "business_main",
@@ -33,10 +37,13 @@ const screens = {
   CUSTOMER_ADD: "customer_add",
   CUSTOMER_TERMS: "customer_terms",
   CUSTOMER_REFUND: "customer_refund",
+  OCR_RESULT: "ocr_result",
 };
 
 export default function App() {
   const [screen, setScreen] = useState(screens.LANDING);
+  const [currentDocId, setCurrentDocId] = useState(null);
+  const [signupData, setSignupData] = useState(null);
   const [showHello, setShowHello] = useState(false);
   const [showSubtitle, setShowSubtitle] = useState(false);
   const [resumeTicket, setResumeTicket] = useState(null);
@@ -49,6 +56,44 @@ export default function App() {
   ]);
   const [businessTermsPass, setBusinessTermsPass] = useState(null);
 
+  // 회원가입 함수
+  const registerUser = async (role) => {
+    try {
+      if (role === "business") {
+        // 사업자는 추가 정보 입력 화면으로
+        setScreen(screens.BUSINESS);
+      } else {
+        // 고객은 바로 회원가입 처리
+        await api.post('/auth/register', {
+          email: signupData.email,
+          password: signupData.password,
+          name: signupData.name,
+          role: role
+        });
+        
+        setSignupData(null);
+        setScreen(screens.SIGNUP_COMPLETE);
+      }
+      
+    } catch (error) {
+      console.error("회원가입 에러:", error);
+      
+      // 에러 메시지 안전하게 추출
+      let errorMessage = "회원가입에 실패했습니다.";
+      if (error.response?.data?.detail) {
+        if (typeof error.response.data.detail === 'string') {
+          errorMessage = error.response.data.detail;
+        } else {
+          errorMessage = JSON.stringify(error.response.data.detail);
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
+      setScreen(screens.AUTH);
+    }
+  };
   const screenTitle = useMemo(() => {
     if (screen === screens.ROLE) {
       return "역할 선택";
@@ -168,18 +213,29 @@ export default function App() {
           </div>
         )}
         <section className="stage">
-          {screen === screens.LANDING && (
-            <LandingScreen />
-          )}
+          {screen === screens.LANDING && <LandingScreen />}
 
           {screen === screens.AUTH && (
-            <AuthScreen onSubmit={() => setScreen(screens.ROLE)} />
+            <AuthScreen 
+              onSubmit={(type, data) => {
+                if (type === "login") {
+                  if (data === "business") {
+                    setScreen(screens.BUSINESS_MAIN);
+                  } else {
+                    setScreen(screens.CUSTOMER_MAIN);
+                  }
+                } else if (type === "signup") {
+                  setSignupData(data);
+                  setScreen(screens.ROLE);
+                }
+              }}
+            />
           )}
 
           {screen === screens.ROLE && (
             <RoleScreen
-              onBusiness={() => setScreen(screens.BUSINESS)}
-              onCustomer={() => setScreen(screens.CUSTOMER)}
+              onBusiness={() => registerUser("business")}
+              onCustomer={() => registerUser("customer")}
             />
           )}
 
@@ -240,8 +296,18 @@ export default function App() {
 
           {screen === screens.CUSTOMER && (
             <CustomerScreen
-              onComplete={() => setScreen(screens.CUSTOMER_MAIN)}
+              onComplete={(docId) => {
+                setCurrentDocId(docId);
+                setScreen(screens.OCR_RESULT);
+              }}
               onBack={() => setScreen(screens.ROLE)}
+            />
+          )}
+
+          {screen === screens.OCR_RESULT && (
+            <OcrResultScreen 
+              docId={currentDocId} 
+              onNext={() => setScreen(screens.CUSTOMER_MAIN)} 
             />
           )}
 
@@ -309,6 +375,11 @@ export default function App() {
             <CustomerRefundScreen
               onBack={() => setScreen(screens.CUSTOMER_TICKETS)}
               onComplete={goCustomerTickets}
+            />
+          )}
+          {screen === screens.SIGNUP_COMPLETE && (
+            <SignupComplete 
+              onLogin={() => setScreen(screens.AUTH)}
             />
           )}
         </section>
