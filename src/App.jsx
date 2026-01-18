@@ -58,22 +58,24 @@ export default function App() {
 
   // 회원가입 함수
   const registerUser = async (role) => {
-    try {
-      if (role === "business") {
-        // 사업자는 추가 정보 입력 화면으로
-        setScreen(screens.BUSINESS);
-      } else {
-        // 고객은 바로 회원가입 처리
-        await api.post('/auth/register', {
-          email: signupData.email,
-          password: signupData.password,
-          name: signupData.name,
-          role: role
-        });
-        
-        setSignupData(null);
-        setScreen(screens.SIGNUP_COMPLETE);
-      }
+  try {
+    if (role === "business") {
+      // 사업자는 signupData를 localStorage에 저장하고 추가 정보 입력 화면으로
+      localStorage.setItem('signupData', JSON.stringify(signupData));
+      setSignupData(null);
+      setScreen(screens.BUSINESS);
+    } else {
+      // 고객은 바로 회원가입 처리
+      await api.post('/auth/register', {
+        email: signupData.email,
+        password: signupData.password,
+        name: signupData.name,
+        role: role
+      });
+      
+      setSignupData(null);
+      setScreen(screens.SIGNUP_COMPLETE);
+    }
       
     } catch (error) {
       console.error("회원가입 에러:", error);

@@ -46,6 +46,9 @@ export default function BusinessScreen({ onComplete, onBack }) {
   );
 
   const isStepValid = useMemo(() => {
+    if (stepIndex === -1) {  // 인트로 화면은 항상 통과
+      return true;
+    }
     if (stepIndex === 0) {
       return businessName.trim().length > 0;
     }
@@ -79,11 +82,19 @@ export default function BusinessScreen({ onComplete, onBack }) {
   }, []);
 
   // 카카오맵 초기화 (3단계에서만)
-  useEffect(() => {
-    if (stepIndex !== 2) return;
+  // 카카오맵 초기화 (3단계에서만)
+useEffect(() => {
+  if (stepIndex !== 2) return;
 
+  const initMap = () => {
     const container = document.getElementById('map');
     if (!container) return;
+
+    // 카카오맵 로드 확인
+    if (!window.kakao || !window.kakao.maps) {
+      setTimeout(initMap, 100); // 100ms 후 재시도
+      return;
+    }
 
     const options = {
       center: new window.kakao.maps.LatLng(36.366, 127.344),
@@ -91,7 +102,10 @@ export default function BusinessScreen({ onComplete, onBack }) {
     };
     
     mapRef.current = new window.kakao.maps.Map(container, options);
-  }, [stepIndex]);
+  };
+
+  initMap();
+}, [stepIndex]);
 
   // 주소 검색
   const handleSearchAddress = () => {
@@ -168,26 +182,41 @@ export default function BusinessScreen({ onComplete, onBack }) {
   };
 
   const handleComplete = async () => {
-    try {
-      await api.patch('/auth/profile', {
-        business_name: businessName,
-        registration_number: registrationNumber,
-        wallet_address: walletAddress,
-        address: address,
-        lat: lat,
-        lng: lng
+  try {
+    // 먼저 회원가입 처리
+    const signupData = JSON.parse(localStorage.getItem('signupData'));
+    if (signupData) {
+      await api.post('/auth/register', {
+        email: signupData.email,
+        password: signupData.password,
+        name: signupData.name,
+        role: 'business'
       });
-      
-      setTimeout(() => {
-        if (onComplete) {
-          onComplete();
-        }
-      }, 1200);
-    } catch (error) {
-      console.error("사업자 정보 저장 실패:", error);
-      alert("정보 저장에 실패했습니다. 다시 시도해주세요.");
     }
-  };
+    
+    // 그 다음 프로필 업데이트
+    await api.patch('/auth/profile', {
+      business_name: businessName,
+      registration_number: registrationNumber,
+      wallet_address: walletAddress,
+      address: address,
+      lat: lat,
+      lng: lng
+    });
+    
+    // signupData 삭제
+    localStorage.removeItem('signupData');
+    
+    setTimeout(() => {
+      if (onComplete) {
+        onComplete();
+      }
+    }, 1200);
+  } catch (error) {
+    console.error("사업자 정보 저장 실패:", error);
+    alert("정보 저장에 실패했습니다. 다시 시도해주세요.");
+  }
+};
 
   useEffect(() => {
     if (!isComplete) {
