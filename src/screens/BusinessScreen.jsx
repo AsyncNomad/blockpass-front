@@ -25,6 +25,7 @@ const steps = [
 export default function BusinessScreen({ onComplete, onBack }) {
   const [stepIndex, setStepIndex] = useState(-1);
   const [userName, setUserName] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
   const [businessName, setBusinessName] = useState("");
   const [registrationNumber, setRegistrationNumber] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
@@ -108,39 +109,54 @@ useEffect(() => {
 }, [stepIndex]);
 
   // 주소 검색
-  const handleSearchAddress = () => {
-    if (!locationQuery.trim()) {
-      alert("주소를 입력해주세요.");
-      return;
-    }
+  const handleSearchPlace = () => {
+  if (!locationQuery.trim()) {
+    alert("검색어를 입력해주세요.");
+    return;
+  }
 
-    const geocoder = new window.kakao.maps.services.Geocoder();
-    
-    geocoder.addressSearch(locationQuery, (result, status) => {
-      if (status === window.kakao.maps.services.Status.OK) {
-        const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
-        
-        mapRef.current.setCenter(coords);
-        
-        if (markerRef.current) {
-          markerRef.current.setMap(null);
-        }
-        
-        markerRef.current = new window.kakao.maps.Marker({
-          map: mapRef.current,
-          position: coords
-        });
-        
-        setAddress(result[0].address_name);
-        setLat(parseFloat(result[0].y));
-        setLng(parseFloat(result[0].x));
-        
-        alert(`주소가 확인되었습니다: ${result[0].address_name}`);
-      } else {
-        alert("주소를 찾을 수 없습니다. 다시 입력해주세요.");
-      }
-    });
-  };
+  if (!window.kakao || !window.kakao.maps) {
+    alert("지도를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+    return;
+  }
+
+  const ps = new window.kakao.maps.services.Places();
+  
+  ps.keywordSearch(locationQuery, (data, status) => {
+    if (status === window.kakao.maps.services.Status.OK) {
+      setSearchResults(data.slice(0, 10)); // 상위 10개만
+    } else if (status === window.kakao.maps.services.Status.ZERO_RESULT) {
+      alert("검색 결과가 없습니다.");
+      setSearchResults([]);
+    } else {
+      alert("검색 중 오류가 발생했습니다.");
+      setSearchResults([]);
+    }
+  });
+};
+
+const handleSelectPlace = (place) => {
+  const coords = new window.kakao.maps.LatLng(place.y, place.x);
+  
+  if (!mapRef.current) return;
+  
+  mapRef.current.setCenter(coords);
+  
+  if (markerRef.current) {
+    markerRef.current.setMap(null);
+  }
+  
+  markerRef.current = new window.kakao.maps.Marker({
+    map: mapRef.current,
+    position: coords
+  });
+  
+  setAddress(place.address_name);
+  setLat(parseFloat(place.y));
+  setLng(parseFloat(place.x));
+  setSearchResults([]);
+  setLocationQuery(place.place_name);
+};
 
   const handleNext = () => {
     if (!isStepValid) {
@@ -166,57 +182,136 @@ useEffect(() => {
 
   const handleWalletConnect = async () => {
     setWalletError("");
-    if (!window.ethereum) {
-      setWalletError("메타마스크를 설치해주세요.");
-      return;
+    
+    // 모바일 환경 체크
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      // 모바일: 메타마스크 앱이 설치되어 있는지 확인
+      if (!window.ethereum) {
+        // 메타마스크 앱으로 딥링크
+        const currentUrl = window.location.href;
+        const metamaskAppDeepLink = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
+        window.location.href = metamaskAppDeepLink;
+        return;
+      }
+    } else {
+      // 데스크톱: 메타마스크 익스텐션 체크
+      if (!window.ethereum) {
+        setWalletError("메타마스크를 설치해주세요.");
+        window.open("https://metamask.io/download/", "_blank");
+        return;
+      }
     }
 
     try {
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
-      setWalletAddress(accounts?.[0] || "");
+      
+      if (accounts && accounts.length > 0) {
+        setWalletAddress(accounts[0]);
+      } else {
+        setWalletError("지갑 주소를 가져올 수 없습니다.");
+      }
     } catch (error) {
-      setWalletError("지갑 연결에 실패했어요. 다시 시도해주세요.");
+      console.error("지갑 연결 에러:", error);
+      if (error.code === 4001) {
+        setWalletError("사용자가 연결을 거부했습니다.");
+      } else {
+        setWalletError("지갑 연결에 실패했어요. 다시 시도해주세요.");
+      }
     }
   };
 
   const handleComplete = async () => {
-  try {
-    // 먼저 회원가입 처리
-    const signupData = JSON.parse(localStorage.getItem('signupData'));
-    if (signupData) {
-      await api.post('/auth/register', {
-        email: signupData.email,
-        password: signupData.password,
-        name: signupData.name,
-        role: 'business'
-      });
-    }
-    
-    // 그 다음 프로필 업데이트
-    await api.patch('/auth/profile', {
-      business_name: businessName,
-      registration_number: registrationNumber,
-      wallet_address: walletAddress,
-      address: address,
-      lat: lat,
-      lng: lng
-    });
-    
-    // signupData 삭제
-    localStorage.removeItem('signupData');
-    
-    setTimeout(() => {
-      if (onComplete) {
-        onComplete();
+    try {
+      // localStorage에서 signupData 확인
+      const signupDataStr = localStorage.getItem('signupData');
+      
+      if (signupDataStr) {
+        // signupData가 있으면 회원가입 처리
+        const signupData = JSON.parse(signupDataStr);
+        
+        try {
+          await api.post('/auth/register', {
+            email: signupData.email,
+            password: signupData.password,
+            name: signupData.name,
+            role: 'business'
+          });
+          
+          // 회원가입 후 자동 로그인
+          const formBody = new URLSearchParams();
+          formBody.append('username', signupData.email);
+          formBody.append('password', signupData.password);
+          
+          const loginResponse = await api.post('/auth/login', formBody, {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            }
+          });
+          
+          // 토큰 저장
+          localStorage.setItem('access_token', loginResponse.data.access_token);
+          localStorage.setItem('user_role', 'business');
+          localStorage.setItem('user_name', signupData.name);
+          
+        } catch (registerError) {
+          console.error("회원가입 에러:", registerError);
+          // 이미 가입된 경우 로그인 시도
+          if (registerError.response?.status === 400) {
+            const formBody = new URLSearchParams();
+            formBody.append('username', signupData.email);
+            formBody.append('password', signupData.password);
+            
+            const loginResponse = await api.post('/auth/login', formBody, {
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+              }
+            });
+            
+            localStorage.setItem('access_token', loginResponse.data.access_token);
+            localStorage.setItem('user_role', 'business');
+            localStorage.setItem('user_name', signupData.name);
+          } else {
+            throw registerError;
+          }
+        }
+        
+        // signupData 삭제
+        localStorage.removeItem('signupData');
       }
-    }, 1200);
-  } catch (error) {
-    console.error("사업자 정보 저장 실패:", error);
-    alert("정보 저장에 실패했습니다. 다시 시도해주세요.");
-  }
-};
+      
+      // 프로필 업데이트
+      await api.patch('/auth/profile', {
+        business_name: businessName,
+        registration_number: registrationNumber,
+        wallet_address: walletAddress,
+        address: address,
+        lat: lat,
+        lng: lng
+      });
+      
+      setTimeout(() => {
+        if (onComplete) {
+          onComplete();
+        }
+      }, 1200);
+    } catch (error) {
+      console.error("사업자 정보 저장 실패:", error);
+      
+      // 상세 에러 메시지 표시
+      let errorMessage = "정보 저장에 실패했습니다.";
+      if (error.response?.data?.detail) {
+        errorMessage = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : JSON.stringify(error.response.data.detail);
+      }
+      
+      alert(errorMessage + " 다시 시도해주세요.");
+    }
+  };
 
   useEffect(() => {
     if (!isComplete) {
@@ -275,56 +370,154 @@ useEffect(() => {
               />
             )}
             {stepIndex === 2 && (
-              <>
-                <div style={{ display: 'flex', gap: '8px', width: 'min(360px, 100%)' }}>
-                  <input
-                    className="input-field"
-                    type="text"
-                    placeholder="주소 또는 장소를 검색해주세요"
-                    value={locationQuery}
-                    onChange={(event) => setLocationQuery(event.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSearchAddress()}
-                    style={{ flex: 1 }}
-                  />
-                  <button 
-                    onClick={handleSearchAddress}
-                    style={{
-                      padding: '12px 20px',
-                      backgroundColor: '#0f6f73',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '12px',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      fontSize: '14px'
-                    }}
-                  >
-                    검색
-                  </button>
-                </div>
-                {address && (
-                  <div style={{ 
-                    fontSize: '14px', 
-                    color: '#0f6f73', 
-                    marginTop: '8px',
-                    fontWeight: '600'
-                  }}>
-                    ✓ {address}
-                  </div>
-                )}
-                <div 
-                  id="map" 
-                  style={{ 
-                    width: 'min(360px, 100%)', 
-                    height: '300px',
-                    borderRadius: '16px',
-                    marginTop: '12px',
-                    border: '1px solid rgba(15, 111, 115, 0.2)',
-                    background: 'rgba(255, 255, 255, 0.8)'
+            <>
+              <div style={{ display: 'flex', gap: '8px', width: 'min(360px, 100%)', position: 'relative' }}>
+                <input
+                  className="input-field"
+                  type="text"
+                  placeholder="주소 또는 장소를 검색해주세요"
+                  value={locationQuery}
+                  onChange={(event) => {
+                    setLocationQuery(event.target.value);
+                    if (!event.target.value.trim()) {
+                      setSearchResults([]);
+                    }
                   }}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearchPlace()}
+                  style={{ flex: 1 }}
                 />
-              </>
-            )}
+                <button 
+                  onClick={handleSearchPlace}
+                  style={{
+                    padding: '12px 20px',
+                    backgroundColor: '#0f6f73',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    fontSize: '14px'
+                  }}
+                >
+                  검색
+                </button>
+              </div>
+              
+              {/* 검색 결과 리스트 */}
+              {searchResults.length > 0 && (
+                <div style={{
+                  width: 'min(360px, 100%)',
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  backgroundColor: 'white',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  marginTop: '8px',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                }}>
+                  {searchResults.map((place, idx) => (
+                    <div
+                      key={place.id || idx}
+                      onClick={() => handleSelectPlace(place)}
+                      style={{
+                        padding: '16px',
+                        borderBottom: idx < searchResults.length - 1 ? '1px solid #f3f4f6' : 'none',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                    >
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        backgroundColor: '#f3f4f6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2">
+                          <circle cx="12" cy="12" r="10"/>
+                          <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ 
+                          fontWeight: '600', 
+                          fontSize: '15px',
+                          color: '#111827',
+                          marginBottom: '4px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {place.place_name}
+                        </div>
+                        <div style={{ 
+                          fontSize: '13px', 
+                          color: '#6b7280',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {place.address_name}
+                        </div>
+                        {place.category_name && (
+                          <div style={{ 
+                            fontSize: '12px', 
+                            color: '#9ca3af',
+                            marginTop: '2px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {place.category_name.split('>').pop().trim()}
+                          </div>
+                        )}
+                      </div>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
+                        <polyline points="9 18 15 12 9 6"/>
+                      </svg>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {address && !searchResults.length && (
+                <div style={{ 
+                  fontSize: '14px', 
+                  color: '#0f6f73', 
+                  marginTop: '8px',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f6f73" strokeWidth="2.5">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  {address}
+                </div>
+              )}
+              
+              <div 
+                id="map" 
+                style={{ 
+                  width: 'min(360px, 100%)', 
+                  height: '300px',
+                  borderRadius: '16px',
+                  marginTop: '12px',
+                  border: '1px solid rgba(15, 111, 115, 0.2)',
+                  background: 'rgba(255, 255, 255, 0.8)'
+                }}
+              />
+            </>
+          )}
             {stepIndex === 3 && (
               <>
                 <button
