@@ -89,6 +89,7 @@ export default function CustomerTicketsScreen({
   onMy,
   onTerms,
   onRefund,
+  onBankruptcy,
   resumeTicket,
   resumeExpiresAt,
   resumeExpanded,
@@ -279,7 +280,15 @@ export default function CustomerTicketsScreen({
                     >
                       환불하기
                     </button>
-                    <button className="qr-action danger" type="button">
+                    <button
+                      className="qr-action danger"
+                      type="button"
+                      onClick={() => {
+                        if (onBankruptcy) {
+                          onBankruptcy(activeTicket, expiresAt, true);
+                        }
+                      }}
+                    >
                       시설 파산신고
                     </button>
                   </div>

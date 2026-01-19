@@ -335,12 +335,33 @@ body {
   place-items: center;
 }
 
+.complete-with-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: center;
+}
+
 .complete-title {
   margin: 0;
   font-size: 26px;
   font-weight: 700;
   color: var(--primary-dark);
   animation: greetingIn 0.8s ease both;
+}
+
+.complete-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.bankruptcy-sub {
+  margin-top: 48px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary-dark);
 }
 
 .main-screen {
@@ -912,6 +933,44 @@ body {
 
 .detail-hero p:last-child {
   margin-bottom: 0;
+}
+
+.detail-bullets {
+  margin: 0;
+  padding-left: 1.1em;
+  list-style: disc;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detail-bullets li {
+  margin: 0;
+}
+
+.stagger-seq .seq-item {
+  opacity: 0;
+  animation: staggerIn 0.5s ease forwards;
+}
+
+.stagger-seq .seq-1 {
+  animation-delay: 0.1s;
+}
+
+.stagger-seq .seq-2 {
+  animation-delay: 0.25s;
+}
+
+.stagger-seq .seq-3 {
+  animation-delay: 0.4s;
+}
+
+.stagger-seq .seq-4 {
+  animation-delay: 0.55s;
+}
+
+.stagger-seq .seq-5 {
+  animation-delay: 0.7s;
 }
 
 .stagger p {
