@@ -18,6 +18,11 @@ export default function BusinessMainScreen({
     const fetchPasses = async () => {
       try {
         setLoading(true);
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          setError("로그인이 필요합니다.");
+          return;
+        }
         const response = await api.get('/business/passes');
         setPasses(response.data);
       } catch (err) {

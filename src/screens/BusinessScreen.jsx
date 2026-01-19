@@ -25,12 +25,12 @@ const steps = [
 ];
 
 export default function BusinessScreen({
-  onMembers,
-  onMain,
-  onMy,
-  onAddPolicy,
-  onTerms,
+  onComplete,
+  onBack,
 }) {
+  useEffect(() => {
+    console.info("[BusinessScreen] build marker: 2026-01-19T06:05Z");
+  }, []);
   const { address: accountAddress, isConnecting, status } = useAccount();
   const { disconnect } = useDisconnect();
   const { open } = useWeb3Modal();
@@ -38,7 +38,20 @@ export default function BusinessScreen({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [stepIndex, setStepIndex] = useState(-1);
-  const [userName, setUserName] = useState("");
+  const [userName, setUserName] = useState(() => {
+    try {
+      const signupDataStr = localStorage.getItem('signupData');
+      if (signupDataStr) {
+        const signupData = JSON.parse(signupDataStr);
+        if (signupData?.name) {
+          return signupData.name;
+        }
+      }
+    } catch {
+      // ignore parse errors and fall back to stored name
+    }
+    return localStorage.getItem('user_name') || "";
+  });
   const [searchResults, setSearchResults] = useState([]);
   const [businessName, setBusinessName] = useState("");
   const [registrationNumber, setRegistrationNumber] = useState("");
@@ -85,11 +98,27 @@ export default function BusinessScreen({
     const fetchUserInfo = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/business/passes');
-        setUserName(response.data.name);
+        const token = localStorage.getItem('access_token');
+        if (token) {
+          const response = await api.get('/auth/me');
+          setUserName(response.data.name);
+          return;
+        }
+
+        const signupDataStr = localStorage.getItem('signupData');
+        if (signupDataStr) {
+          const signupData = JSON.parse(signupDataStr);
+          setUserName(signupData.name || "");
+          return;
+        }
+
+        const storedName = localStorage.getItem('user_name');
+        if (storedName) {
+          setUserName(storedName);
+        }
       } catch (error) {
         console.error("사용자 정보 불러오기 실패:", error);
-        setError("이용권 목록을 불러올 수 없습니다.");
+        setError("사용자 정보를 불러올 수 없습니다.");
         const storedName = localStorage.getItem('user_name');
         if (storedName) {
           setUserName(storedName);
@@ -221,20 +250,25 @@ const handleSelectPlace = (place) => {
   };
 
   const handleBack = () => {
-    setStepIndex((prev) => {
-      if (prev > 0) {
-        return prev - 1;
+    console.log("handleBack 호출, stepIndex:", stepIndex, "onBack:", onBack);
+    
+    // 인트로 화면(-1)에서 뒤로가기
+    if (stepIndex === -1) {
+      if (onBack && typeof onBack === "function") {
+        onBack();
       }
-      if (prev === 0) {
-        return -1;
-      }
-      return prev;
-    });
-    if (stepIndex <= -1 && onBack) {
-      onBack();
+      return;
     }
-  };
+    
+    // 첫 번째 단계(0)에서 뒤로가기 → 인트로로
+    if (stepIndex === 0) {
+      setStepIndex(-1);
+      return;
+    }
 
+    // 그 외 단계에서 뒤로가기
+    setStepIndex((prev) => prev - 1);
+  };
   const handleWalletConnect = async () => {
     setWalletError("");
     try {
@@ -328,7 +362,7 @@ const handleSelectPlace = (place) => {
       localStorage.removeItem("businessFlowState");
       
       setTimeout(() => {
-        if (onComplete) {
+        if (typeof onComplete === "function") {
           onComplete();
         }
       }, 1200);

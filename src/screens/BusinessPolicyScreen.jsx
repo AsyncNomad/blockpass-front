@@ -99,6 +99,14 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
     }
     const timer = setTimeout(async () => {
       try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          alert("로그인이 필요합니다. 다시 로그인해주세요.");
+          if (onCancel) {
+            onCancel();
+          }
+          return;
+        }
         // duration을 일수로 변환
         let durationInDays = parseInt(durationValue);
         if (durationUnit === "시간") {
