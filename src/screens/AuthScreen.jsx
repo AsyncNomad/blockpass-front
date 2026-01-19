@@ -28,6 +28,7 @@ export default function AuthScreen({ onSubmit, onBack }) {
   };
 
   // 이메일 중복 체크 (디바운스)
+  // 이메일 중복 체크 (디바운스)
   useEffect(() => {
     if (!isSignup || !formData.email) {
       setEmailExists(false);
@@ -42,15 +43,13 @@ export default function AuthScreen({ onSubmit, onBack }) {
     const timer = setTimeout(async () => {
       setEmailChecking(true);
       try {
-        // 이메일 중복 체크 API 호출 (회원가입 시도로 체크)
-        await api.post('/auth/check-email', { email: formData.email });
-        setEmailExists(false);
+        // 이메일 중복 체크 API 호출
+        const response = await api.post('/auth/check-email', { email: formData.email });
+        setEmailExists(response.data?.available === false);
       } catch (err) {
-        if (err.response?.status === 400 || err.response?.data?.detail?.includes("이미")) {
-          setEmailExists(true);
-        } else {
-          setEmailExists(false);
-        }
+        // API가 없거나 에러 시 중복 체크 건너뜀 (회원가입 시 서버에서 체크)
+        console.log("이메일 중복 체크 스킵:", err.response?.status);
+        setEmailExists(false);
       } finally {
         setEmailChecking(false);
       }

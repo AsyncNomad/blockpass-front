@@ -50,6 +50,7 @@ export default function App() {
   const [resumeExpiresAt, setResumeExpiresAt] = useState(0);
   const [resumeExpanded, setResumeExpanded] = useState(false);
   const [businessTermsPass, setBusinessTermsPass] = useState(null);
+  const [businessPasses, setBusinessPasses] = useState([]);
 
   // 회원가입 함수
   const registerUser = async (role) => {
@@ -214,6 +215,7 @@ export default function App() {
 
           {screen === screens.AUTH && (
             <AuthScreen 
+              onBack={() => setScreen(screens.LANDING)}
               onSubmit={(type, data) => {
                 if (type === "login") {
                   if (data === "business") {
