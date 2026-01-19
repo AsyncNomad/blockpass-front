@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import BackButton from "./BackButton.jsx";
 import LoadingScreen from "./LoadingScreen.jsx";
+import api from "../utils/api"; // 추가
 
 const units = ["일", "시간", "분"];
 const initialRefundRules = [{ period: "", unit: "일", refund: "" }];
@@ -96,19 +97,32 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
     if (!showComplete) {
       return undefined;
     }
-    const timer = setTimeout(() => {
-      if (onSave) {
-        onSave({
+    const timer = setTimeout(async () => {
+      try {
+        // duration을 일수로 변환
+        let durationInDays = parseInt(durationValue);
+        if (durationUnit === "시간") {
+          durationInDays = Math.ceil(durationValue / 24);
+        } else if (durationUnit === "분") {
+          durationInDays = Math.ceil(durationValue / (24 * 60));
+        }
+        
+        // 백엔드 API로 이용권 생성
+        await api.post('/business/passes', {
           title: passName,
-          price: "정책 등록 완료",
-          terms,
-          duration: `${durationValue}${durationUnit}`,
-          refundRules,
+          price: parseFloat(passPriceEth), // ETH 그대로 저장
+          duration_days: durationInDays,
         });
+      } catch (error) {
+        console.error("이용권 생성 실패:", error);
+      }
+      
+      if (onSave) {
+        onSave();
       }
     }, 1400);
     return () => clearTimeout(timer);
-  }, [showComplete, onSave, passName, terms, durationValue, durationUnit, refundRules]);
+  }, [showComplete, onSave, passName, passPriceEth, durationValue, durationUnit]);
 
   if (showLoading) {
     return (

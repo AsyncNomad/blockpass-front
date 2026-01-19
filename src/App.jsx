@@ -42,11 +42,6 @@ export default function App() {
   const [resumeTicket, setResumeTicket] = useState(null);
   const [resumeExpiresAt, setResumeExpiresAt] = useState(0);
   const [resumeExpanded, setResumeExpanded] = useState(false);
-  const [businessPasses, setBusinessPasses] = useState([
-    { title: "블록핏 헬스장 1개월권", price: "0.05 ETH" },
-    { title: "블록핏 헬스장 3개월권", price: "0.12 ETH" },
-    { title: "블록핏 헬스장 PT 10회권", price: "0.2 ETH" },
-  ]);
   const [businessTermsPass, setBusinessTermsPass] = useState(null);
 
   const screenTitle = useMemo(() => {
