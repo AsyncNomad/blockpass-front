@@ -1,6 +1,28 @@
+import { useEffect, useState } from "react";
 import MainNav from "./MainNav.jsx";
+import api from "../utils/api";
 
 export default function CustomerMyScreen({ onTickets, onMain, onMy, onLogout }) {
+  const [profile, setProfile] = useState({ name: "", wallet_address: "" });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get("/auth/me");
+        setProfile(response.data || {});
+      } catch (err) {
+        console.error("프로필 조회 실패:", err);
+        setError("프로필 정보를 불러올 수 없습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
   return (
     <div className="main-screen">
       <section className="main-section">
@@ -12,7 +34,9 @@ export default function CustomerMyScreen({ onTickets, onMain, onMy, onLogout }) 
             </svg>
           </div>
           <div className="profile-details">
-            <div className="profile-name">홍길동님</div>
+            <div className="profile-name">
+              {loading ? "불러오는 중..." : `${profile.name || "고객"}님`}
+            </div>
           </div>
         </div>
         <div className="my-card">
@@ -24,7 +48,11 @@ export default function CustomerMyScreen({ onTickets, onMain, onMy, onLogout }) 
             </span>
             <div className="my-label">메타마스크 지갑 주소</div>
           </div>
-          <div className="my-value">0x12ab...78cd</div>
+          <div className="my-value">
+            {error
+              ? error
+              : profile.wallet_address || "등록된 지갑이 없습니다."}
+          </div>
         </div>
         <button className="logout-button" type="button" onClick={onLogout}>
           <span className="button-icon" aria-hidden="true">

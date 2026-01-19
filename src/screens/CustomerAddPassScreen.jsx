@@ -1,19 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import BackButton from "./BackButton.jsx";
 import LoadingScreen from "./LoadingScreen.jsx";
-
-const merchants = [
-  { id: "fit-1", name: "블록핏 헬스장", passes: ["1개월권", "3개월권", "PT 10회권"] },
-  { id: "fit-2", name: "코어바디 피트니스", passes: ["1개월권", "6개월권"] },
-  { id: "study-1", name: "스테디 독서실", passes: ["자유석 1개월", "지정석 3개월"] },
-];
+import api from "../utils/api";
 
 export default function CustomerAddPassScreen({ onComplete, onBack }) {
   const [mode, setMode] = useState("choice");
   const [step, setStep] = useState(1);
   const [query, setQuery] = useState("");
+  const [merchants, setMerchants] = useState([]);
+  const [merchantLoading, setMerchantLoading] = useState(true);
+  const [merchantError, setMerchantError] = useState("");
+  const [passes, setPasses] = useState([]);
   const [selectedMerchant, setSelectedMerchant] = useState(null);
-  const [selectedPass, setSelectedPass] = useState("");
+  const [selectedPass, setSelectedPass] = useState(null);
   const [showTerms, setShowTerms] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [paid, setPaid] = useState(false);
@@ -26,12 +25,28 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
       return merchants;
     }
     return merchants.filter((item) => item.name.includes(keyword));
-  }, [query]);
+  }, [query, merchants]);
 
   const canNext =
     (step === 1 && selectedMerchant) ||
     (step === 2 && accepted) ||
     (step === 3 && paid);
+
+  useEffect(() => {
+    const fetchMerchants = async () => {
+      try {
+        setMerchantLoading(true);
+        const response = await api.get("/facilities/list");
+        setMerchants(response.data || []);
+      } catch (err) {
+        console.error("시설 목록 조회 실패:", err);
+        setMerchantError("시설 목록을 불러올 수 없습니다.");
+      } finally {
+        setMerchantLoading(false);
+      }
+    };
+    fetchMerchants();
+  }, []);
 
   useEffect(() => {
     if (!showLoading) {
@@ -65,8 +80,22 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
 
   const handleSelectMerchant = (item) => {
     setSelectedMerchant(item);
-    setSelectedPass("");
+    setSelectedPass(null);
     setAccepted(false);
+    setPasses([]);
+    if (!item?.id) {
+      return;
+    }
+    const fetchPasses = async () => {
+      try {
+        const response = await api.get(`/facilities/${item.id}/passes`);
+        setPasses(response.data || []);
+      } catch (err) {
+        console.error("이용권 조회 실패:", err);
+        setPasses([]);
+      }
+    };
+    fetchPasses();
   };
 
   const handleSelectPass = (pass) => {
@@ -79,9 +108,21 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
     setShowTerms(false);
   };
 
-  const handlePay = () => {
-    setPaid(true);
-    setShowLoading(true);
+  const handlePay = async () => {
+    if (!selectedPass?.id) {
+      alert("이용권을 선택해주세요.");
+      return;
+    }
+    try {
+      setPaid(true);
+      setShowLoading(true);
+      await api.post(`/orders/purchase/${selectedPass.id}`);
+    } catch (err) {
+      console.error("결제 실패:", err);
+      setPaid(false);
+      setShowLoading(false);
+      alert("결제에 실패했습니다. 다시 시도해주세요.");
+    }
   };
 
   return (
@@ -140,18 +181,26 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
                 onChange={(event) => setQuery(event.target.value)}
               />
               <div className="merchant-list">
-                {filteredMerchants.map((item) => (
-                  <button
-                    key={item.id}
-                    className={`merchant-card ${
-                      selectedMerchant?.id === item.id ? "active" : ""
-                    }`}
-                    type="button"
-                    onClick={() => handleSelectMerchant(item)}
-                  >
-                    {item.name}
-                  </button>
-                ))}
+                {merchantLoading && (
+                  <div style={{ padding: "12px", color: "#94a3b8" }}>불러오는 중...</div>
+                )}
+                {!merchantLoading && merchantError && (
+                  <div style={{ padding: "12px", color: "#ef4444" }}>{merchantError}</div>
+                )}
+                {!merchantLoading &&
+                  !merchantError &&
+                  filteredMerchants.map((item) => (
+                    <button
+                      key={item.id}
+                      className={`merchant-card ${
+                        selectedMerchant?.id === item.id ? "active" : ""
+                      }`}
+                      type="button"
+                      onClick={() => handleSelectMerchant(item)}
+                    >
+                      {item.name}
+                    </button>
+                  ))}
               </div>
             </div>
           )}
@@ -160,15 +209,15 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
             <div className="form-block">
               <h2 className="form-title">이용권 종류를 선택해주세요.</h2>
               <div className="ticket-list">
-                {(selectedMerchant?.passes || []).map((pass) => (
+                {(passes || []).map((pass) => (
                   <button
-                    key={pass}
+                    key={pass.id}
                     className="ticket-card ticket-button"
                     type="button"
                     onClick={() => handleSelectPass(pass)}
                   >
-                    <div className="ticket-title">{pass}</div>
-                    <div className="ticket-period">디지털 계약 확인 필요</div>
+                    <div className="ticket-title">{pass.title}</div>
+                    <div className="ticket-period">{pass.price} ETH</div>
                   </button>
                 ))}
               </div>

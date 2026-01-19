@@ -38,6 +38,8 @@ export default function BusinessScreen({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [stepIndex, setStepIndex] = useState(-1);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveComplete, setSaveComplete] = useState(false);
   const [userName, setUserName] = useState(() => {
     try {
       const signupDataStr = localStorage.getItem('signupData');
@@ -65,9 +67,9 @@ export default function BusinessScreen({
   const markerRef = useRef(null);
   const hasHydrated = useRef(false);
 
-  const isIntro = stepIndex === -1;
-  const isComplete = stepIndex === steps.length;
-  const isForm = stepIndex >= 0 && stepIndex < steps.length;
+  const isIntro = stepIndex === -1 && !saveComplete;
+  const isComplete = saveComplete;
+  const isForm = stepIndex >= 0 && stepIndex < steps.length && !saveComplete;
   const stepLabel = useMemo(() => `${stepIndex + 1}/4`, [stepIndex]);
   const progressPercent = useMemo(
     () => ((stepIndex + 1) / 4) * 100,
@@ -246,7 +248,11 @@ const handleSelectPlace = (place) => {
     if (!isStepValid) {
       return;
     }
-    setStepIndex((prev) => Math.min(prev + 1, steps.length));
+    if (stepIndex === steps.length - 1) {
+      handleComplete();
+      return;
+    }
+    setStepIndex((prev) => Math.min(prev + 1, steps.length - 1));
   };
 
   const handleBack = () => {
@@ -292,6 +298,10 @@ const handleSelectPlace = (place) => {
   }, [accountAddress]);
 
   const handleComplete = async () => {
+    if (isSaving) {
+      return;
+    }
+    setIsSaving(true);
     try {
       // localStorage에서 signupData 확인
       const signupDataStr = localStorage.getItem('signupData');
@@ -349,6 +359,11 @@ const handleSelectPlace = (place) => {
         // signupData 삭제
         localStorage.removeItem('signupData');
       }
+
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        throw new Error("로그인이 필요합니다. 다시 로그인해주세요.");
+      }
       
       // 프로필 업데이트
       await api.patch('/auth/profile', {
@@ -360,7 +375,8 @@ const handleSelectPlace = (place) => {
         lng: lng
       });
       localStorage.removeItem("businessFlowState");
-      
+
+      setSaveComplete(true);
       setTimeout(() => {
         if (typeof onComplete === "function") {
           onComplete();
@@ -378,15 +394,9 @@ const handleSelectPlace = (place) => {
       }
       
       alert(errorMessage + " 다시 시도해주세요.");
+      setIsSaving(false);
     }
   };
-
-  useEffect(() => {
-    if (!isComplete) {
-      return;
-    }
-    handleComplete();
-  }, [isComplete]);
 
   return (
     <div className="flow-screen business-flow" key="business">
@@ -609,10 +619,10 @@ const handleSelectPlace = (place) => {
           <button
             className="next-button cta-static"
             type="button"
-            disabled={!isStepValid}
+            disabled={!isStepValid || isSaving}
             onClick={handleNext}
           >
-            {steps[stepIndex].button}
+            {isSaving ? "저장 중..." : steps[stepIndex].button}
           </button>
         </>
       )}

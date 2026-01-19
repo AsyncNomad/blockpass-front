@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import BackButton from "./BackButton.jsx";
+import api from "../utils/api";
 
 const steps = [
   {
@@ -17,10 +18,12 @@ export default function CustomerScreen({ onComplete, onBack }) {
   const [stepIndex, setStepIndex] = useState(-1);
   const [walletAddress, setWalletAddress] = useState("");
   const [walletError, setWalletError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveComplete, setSaveComplete] = useState(false);
 
-  const isIntro = stepIndex === -1;
-  const isComplete = stepIndex === steps.length;
-  const isForm = stepIndex >= 0 && stepIndex < steps.length;
+  const isIntro = stepIndex === -1 && !saveComplete;
+  const isComplete = saveComplete;
+  const isForm = stepIndex >= 0 && stepIndex < steps.length && !saveComplete;
   const stepLabel = useMemo(() => `${stepIndex + 1}/1`, [stepIndex]);
   const progressPercent = useMemo(() => ((stepIndex + 1) / 1) * 100, [stepIndex]);
   const isStepValid = useMemo(
@@ -29,7 +32,14 @@ export default function CustomerScreen({ onComplete, onBack }) {
   );
 
   const handleNext = () => {
-    setStepIndex((prev) => Math.min(prev + 1, steps.length));
+    if (!isStepValid) {
+      return;
+    }
+    if (stepIndex === steps.length - 1) {
+      handleComplete();
+      return;
+    }
+    setStepIndex((prev) => Math.min(prev + 1, steps.length - 1));
   };
 
   const handleWalletConnect = async () => {
@@ -45,26 +55,38 @@ export default function CustomerScreen({ onComplete, onBack }) {
     }
   };
 
+  const handleComplete = async () => {
+    if (isSaving) {
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        throw new Error("로그인이 필요합니다. 다시 로그인해주세요.");
+      }
+      await api.patch("/auth/profile", {
+        wallet_address: walletAddress,
+      });
+      setSaveComplete(true);
+      setTimeout(() => {
+        if (onComplete) {
+          onComplete();
+        }
+      }, 800);
+    } catch (error) {
+      console.error("고객 정보 저장 실패:", error);
+      alert("정보 저장에 실패했습니다. 다시 시도해주세요.");
+      setIsSaving(false);
+    }
+  };
+
   useEffect(() => {
     if (address) {
       setWalletAddress(address);
       setWalletError("");
     }
   }, [address]);
-
-  useEffect(() => {
-    if (!isComplete) {
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      if (onComplete) {
-        onComplete();
-      }
-    }, 1200);
-
-    return () => clearTimeout(timer);
-  }, [isComplete, onComplete]);
 
   return (
     <div className="flow-screen business-flow" key="customer">
@@ -115,10 +137,10 @@ export default function CustomerScreen({ onComplete, onBack }) {
           <button
             className="next-button cta-static"
             type="button"
-            disabled={!isStepValid}
+            disabled={!isStepValid || isSaving}
             onClick={handleNext}
           >
-            {steps[stepIndex].button}
+            {isSaving ? "저장 중..." : steps[stepIndex].button}
           </button>
         </>
       )}

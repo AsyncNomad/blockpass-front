@@ -1,12 +1,28 @@
+import { useEffect, useState } from "react";
 import MainNav from "./MainNav.jsx";
-
-const recommendations = [
-  { name: "블록핏 헬스장", distance: "0.8", unit: "km" },
-  { name: "스테디 독서실", distance: "1.4", unit: "km" },
-  { name: "코어바디 피트니스", distance: "2.1", unit: "km" },
-];
+import api from "../utils/api";
 
 export default function CustomerMainScreen({ onTickets, onMain, onMy, onAddPass }) {
+  const [facilities, setFacilities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchFacilities = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get("/facilities/list");
+        setFacilities(response.data || []);
+      } catch (err) {
+        console.error("시설 조회 실패:", err);
+        setError("시설 정보를 불러올 수 없습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFacilities();
+  }, []);
+
   return (
     <div className="main-screen customer-main">
       <section className="main-section">
@@ -20,14 +36,24 @@ export default function CustomerMainScreen({ onTickets, onMain, onMy, onAddPass 
           <h2 className="main-title">주변 추천</h2>
         </div>
         <div className="main-cards grid-cards">
-          {recommendations.map((item) => (
-            <div className="main-card" key={item.name}>
+          {loading && (
+            <div style={{ padding: "24px", color: "#94a3b8" }}>불러오는 중...</div>
+          )}
+          {!loading && error && (
+            <div style={{ padding: "24px", color: "#ef4444" }}>{error}</div>
+          )}
+          {!loading && !error && facilities.length === 0 && (
+            <div style={{ padding: "24px", color: "#94a3b8" }}>표시할 시설이 없습니다.</div>
+          )}
+          {!loading &&
+            !error &&
+            facilities.map((item) => (
+            <div className="main-card" key={item.id || item.name}>
               <div className="card-image" aria-hidden="true" />
               <div className="main-card-title">{item.name}</div>
               <div className="main-card-sub">
                 <span className="pin" aria-hidden="true" />
-                <span className="num">{item.distance}</span>
-                <span className="unit">{item.unit}</span>
+                <span className="num">{item.price_display || "가격 준비중"}</span>
               </div>
             </div>
           ))}

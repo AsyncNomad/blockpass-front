@@ -47,7 +47,14 @@ const screens = {
 export default function App() {
   const [screen, setScreen] = useState(screens.LANDING);
   const [currentDocId, setCurrentDocId] = useState(null);
-  const [signupData, setSignupData] = useState(null);
+  const [signupData, setSignupData] = useState(() => {
+    try {
+      const saved = localStorage.getItem("signupData");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [showHello, setShowHello] = useState(false);
   const [showSubtitle, setShowSubtitle] = useState(false);
   const [resumeTicket, setResumeTicket] = useState(null);
@@ -59,22 +66,46 @@ export default function App() {
   // 회원가입 함수
   const registerUser = async (role) => {
     try {
+      let payload = signupData;
+      if (!payload) {
+        const saved = localStorage.getItem("signupData");
+        payload = saved ? JSON.parse(saved) : null;
+      }
+      if (!payload) {
+        alert("회원가입 정보가 사라졌습니다. 다시 진행해주세요.");
+        setScreen(screens.AUTH);
+        return;
+      }
       if (role === "business") {
         // 사업자는 signupData를 localStorage에 저장하고 추가 정보 입력 화면으로
-        localStorage.setItem('signupData', JSON.stringify(signupData));
+        localStorage.setItem("signupData", JSON.stringify(payload));
         setSignupData(null);
         setScreen(screens.BUSINESS);
       } else {
-        // 고객은 바로 회원가입 처리
+        // 고객은 바로 회원가입 처리 후 지갑 등록 단계로 이동
         await api.post('/auth/register', {
-          email: signupData.email,
-          password: signupData.password,
-          name: signupData.name,
+          email: payload.email,
+          password: payload.password,
+          name: payload.name,
           role: role
         });
+
+        const formBody = new URLSearchParams();
+        formBody.append('username', payload.email);
+        formBody.append('password', payload.password);
+
+        const loginResponse = await api.post('/auth/login', formBody, {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        });
+        localStorage.setItem('access_token', loginResponse.data.access_token);
+        localStorage.setItem('user_role', 'customer');
+        localStorage.setItem('user_name', payload.name);
         
         setSignupData(null);
-        setScreen(screens.SIGNUP_COMPLETE);
+        localStorage.removeItem("signupData");
+        setScreen(screens.CUSTOMER);
       }
         
       } catch (error) {
@@ -239,13 +270,14 @@ export default function App() {
                   } else {
                     setScreen(screens.CUSTOMER_MAIN);
                   }
-                } else if (type === "signup") {
-                  setSignupData(data);
-                  setScreen(screens.ROLE);
-                }
-              }}
-            />
-          )}
+        } else if (type === "signup") {
+          localStorage.setItem("signupData", JSON.stringify(data));
+          setSignupData(data);
+          setScreen(screens.ROLE);
+        }
+      }}
+    />
+  )}
 
           {screen === screens.ROLE && (
             <RoleScreen
@@ -311,10 +343,7 @@ export default function App() {
 
           {screen === screens.CUSTOMER && (
             <CustomerScreen
-              onComplete={(docId) => {
-                setCurrentDocId(docId);
-                setScreen(screens.OCR_RESULT);
-              }}
+              onComplete={() => setScreen(screens.CUSTOMER_MAIN)}
               onBack={() => setScreen(screens.ROLE)}
             />
           )}

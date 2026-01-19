@@ -107,19 +107,22 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
           }
           return;
         }
-        // duration을 일수로 변환
-        let durationInDays = parseInt(durationValue);
-        if (durationUnit === "시간") {
-          durationInDays = Math.ceil(durationValue / 24);
-        } else if (durationUnit === "분") {
-          durationInDays = Math.ceil(durationValue / (24 * 60));
+        // duration을 분 단위로 저장
+        let durationMinutes = parseInt(durationValue, 10);
+        if (durationUnit === "일") {
+          durationMinutes = durationMinutes * 24 * 60;
+        } else if (durationUnit === "시간") {
+          durationMinutes = durationMinutes * 60;
         }
+        const durationInDays = Math.max(1, Math.ceil(durationMinutes / (24 * 60)));
         
         // 백엔드 API로 이용권 생성
         await api.post('/business/passes', {
           title: passName,
+          terms: terms,
           price: parseFloat(passPriceEth), // ETH 그대로 저장
           duration_days: durationInDays,
+          duration_minutes: durationMinutes,
         });
       } catch (error) {
         console.error("이용권 생성 실패:", error);
