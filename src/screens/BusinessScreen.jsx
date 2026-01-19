@@ -22,7 +22,16 @@ const steps = [
   },
 ];
 
-export default function BusinessScreen({ onComplete, onBack }) {
+export default function BusinessScreen({
+  onMembers,
+  onMain,
+  onMy,
+  onAddPolicy,
+  onTerms,
+}) {
+  const [passes, setPasses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [stepIndex, setStepIndex] = useState(-1);
   const [userName, setUserName] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -69,14 +78,18 @@ export default function BusinessScreen({ onComplete, onBack }) {
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const response = await api.get('/auth/me');
+        setLoading(true);
+        const response = await api.get('/business/passes');
         setUserName(response.data.name);
       } catch (error) {
         console.error("사용자 정보 불러오기 실패:", error);
+        setError("이용권 목록을 불러올 수 없습니다.");
         const storedName = localStorage.getItem('user_name');
         if (storedName) {
           setUserName(storedName);
         }
+      } finally {
+        setLoading(false);
       }
     };
     fetchUserInfo();
@@ -186,40 +199,65 @@ const handleSelectPlace = (place) => {
     // 모바일 환경 체크
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     
-    if (isMobile) {
-      // 모바일: 메타마스크 앱이 설치되어 있는지 확인
-      if (!window.ethereum) {
-        // 메타마스크 앱으로 딥링크
-        const currentUrl = window.location.href;
-        const metamaskAppDeepLink = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
-        window.location.href = metamaskAppDeepLink;
+    // 이더리움 프로바이더 체크
+    if (typeof window.ethereum === 'undefined') {
+      if (isMobile) {
+        // 모바일: 메타마스크 딥링크로 이동
+        const dappUrl = window.location.href.replace(/^https?:\/\//, '');
+        window.location.href = `https://metamask.app.link/dapp/${dappUrl}`;
         return;
-      }
-    } else {
-      // 데스크톱: 메타마스크 익스텐션 체크
-      if (!window.ethereum) {
+      } else {
+        // 데스크톱: 메타마스크 설치 페이지로 이동
         setWalletError("메타마스크를 설치해주세요.");
-        window.open("https://metamask.io/download/", "_blank");
+        setTimeout(() => {
+          window.open("https://metamask.io/download/", "_blank");
+        }, 1000);
         return;
       }
     }
 
     try {
+      // 메타마스크 연결 요청
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
       
+      console.log("연결된 계정:", accounts);
+      
       if (accounts && accounts.length > 0) {
         setWalletAddress(accounts[0]);
+        
+        // 네트워크 확인 (선택사항)
+        const chainId = await window.ethereum.request({ 
+          method: 'eth_chainId' 
+        });
+        console.log("연결된 네트워크:", chainId);
+        
+        // 계정 변경 감지
+        window.ethereum.on('accountsChanged', (newAccounts) => {
+          if (newAccounts.length === 0) {
+            setWalletAddress("");
+            setWalletError("메타마스크 연결이 해제되었습니다.");
+          } else {
+            setWalletAddress(newAccounts[0]);
+          }
+        });
+        
       } else {
         setWalletError("지갑 주소를 가져올 수 없습니다.");
       }
+      
     } catch (error) {
-      console.error("지갑 연결 에러:", error);
+      console.error("메타마스크 연결 에러:", error);
+      
       if (error.code === 4001) {
-        setWalletError("사용자가 연결을 거부했습니다.");
+        // 사용자가 연결을 거부
+        setWalletError("연결을 취소하셨습니다.");
+      } else if (error.code === -32002) {
+        // 이미 연결 요청이 진행 중
+        setWalletError("메타마스크에서 연결 요청을 확인해주세요.");
       } else {
-        setWalletError("지갑 연결에 실패했어요. 다시 시도해주세요.");
+        setWalletError("지갑 연결에 실패했습니다. 다시 시도해주세요.");
       }
     }
   };
