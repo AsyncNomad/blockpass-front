@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAccount, useDisconnect } from "wagmi";
+import { useWeb3Modal } from "@web3modal/wagmi/react";
 import BackButton from "./BackButton.jsx";
 
 const steps = [
@@ -9,6 +11,9 @@ const steps = [
 ];
 
 export default function CustomerScreen({ onComplete, onBack }) {
+  const { address, isConnecting, status } = useAccount();
+  const { disconnect } = useDisconnect();
+  const { open } = useWeb3Modal();
   const [stepIndex, setStepIndex] = useState(-1);
   const [walletAddress, setWalletAddress] = useState("");
   const [walletError, setWalletError] = useState("");
@@ -29,20 +34,23 @@ export default function CustomerScreen({ onComplete, onBack }) {
 
   const handleWalletConnect = async () => {
     setWalletError("");
-    if (!window.ethereum) {
-      setWalletError("메타마스크를 설치해주세요.");
-      return;
-    }
-
     try {
-      const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      });
-      setWalletAddress(accounts?.[0] || "");
+      // 이전 세션이 꼬여 있을 수 있으니 연결 중 상태면 끊고 다시 시도
+      if (status === "connecting" || status === "reconnecting") {
+        await disconnect();
+      }
+      await open();
     } catch (error) {
       setWalletError("지갑 연결에 실패했어요. 다시 시도해주세요.");
     }
   };
+
+  useEffect(() => {
+    if (address) {
+      setWalletAddress(address);
+      setWalletError("");
+    }
+  }, [address]);
 
   useEffect(() => {
     if (!isComplete) {

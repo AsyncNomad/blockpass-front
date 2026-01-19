@@ -1,5 +1,7 @@
 // C:\Project\kaist\2_week\blockpass-front\src\screens\BusinessScreen.jsx
 import { useEffect, useMemo, useState, useRef } from "react";
+import { useAccount, useDisconnect } from "wagmi";
+import { useWeb3Modal } from "@web3modal/wagmi/react";
 import BackButton from "./BackButton.jsx";
 import api from "../utils/api";
 
@@ -29,6 +31,9 @@ export default function BusinessScreen({
   onAddPolicy,
   onTerms,
 }) {
+  const { address: accountAddress, isConnecting, status } = useAccount();
+  const { disconnect } = useDisconnect();
+  const { open } = useWeb3Modal();
   const [passes, setPasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -38,13 +43,14 @@ export default function BusinessScreen({
   const [businessName, setBusinessName] = useState("");
   const [registrationNumber, setRegistrationNumber] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
-  const [address, setAddress] = useState("");
+  const [storeAddress, setStoreAddress] = useState("");
   const [lat, setLat] = useState(null);
   const [lng, setLng] = useState(null);
   const [walletAddress, setWalletAddress] = useState("");
   const [walletError, setWalletError] = useState("");
   const mapRef = useRef(null);
   const markerRef = useRef(null);
+  const hasHydrated = useRef(false);
 
   const isIntro = stepIndex === -1;
   const isComplete = stepIndex === steps.length;
@@ -66,13 +72,13 @@ export default function BusinessScreen({
       return registrationNumber.trim().length > 0;
     }
     if (stepIndex === 2) {
-      return address.length > 0;
+      return storeAddress.length > 0;
     }
     if (stepIndex === 3) {
       return walletAddress.trim().length > 0;
     }
     return false;
-  }, [stepIndex, businessName, registrationNumber, address, walletAddress]);
+  }, [stepIndex, businessName, registrationNumber, storeAddress, walletAddress]);
 
   // 사용자 정보 불러오기
   useEffect(() => {
@@ -94,6 +100,42 @@ export default function BusinessScreen({
     };
     fetchUserInfo();
   }, []);
+
+  // 화면 상태 복구 (앱 전환 후 리로드 대비)
+  useEffect(() => {
+    if (hasHydrated.current) return;
+    hasHydrated.current = true;
+    const saved = localStorage.getItem("businessFlowState");
+    if (!saved) return;
+    try {
+      const state = JSON.parse(saved);
+      if (typeof state.stepIndex === "number") setStepIndex(state.stepIndex);
+      if (state.businessName) setBusinessName(state.businessName);
+      if (state.registrationNumber) setRegistrationNumber(state.registrationNumber);
+      if (state.locationQuery) setLocationQuery(state.locationQuery);
+      if (state.storeAddress) setStoreAddress(state.storeAddress);
+      if (typeof state.lat === "number") setLat(state.lat);
+      if (typeof state.lng === "number") setLng(state.lng);
+      if (state.walletAddress) setWalletAddress(state.walletAddress);
+    } catch (e) {
+      console.warn("restore businessFlowState failed", e);
+    }
+  }, []);
+
+  // 화면 상태 저장
+  useEffect(() => {
+    const snapshot = {
+      stepIndex,
+      businessName,
+      registrationNumber,
+      locationQuery,
+      storeAddress,
+      lat,
+      lng,
+      walletAddress,
+    };
+    localStorage.setItem("businessFlowState", JSON.stringify(snapshot));
+  }, [stepIndex, businessName, registrationNumber, locationQuery, storeAddress, lat, lng, walletAddress]);
 
   // 카카오맵 초기화 (3단계에서만)
   // 카카오맵 초기화 (3단계에서만)
@@ -164,7 +206,7 @@ const handleSelectPlace = (place) => {
     position: coords
   });
   
-  setAddress(place.address_name);
+  setStoreAddress(place.address_name);
   setLat(parseFloat(place.y));
   setLng(parseFloat(place.x));
   setSearchResults([]);
@@ -195,72 +237,25 @@ const handleSelectPlace = (place) => {
 
   const handleWalletConnect = async () => {
     setWalletError("");
-    
-    // 모바일 환경 체크
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    // 이더리움 프로바이더 체크
-    if (typeof window.ethereum === 'undefined') {
-      if (isMobile) {
-        // 모바일: 메타마스크 딥링크로 이동
-        const dappUrl = window.location.href.replace(/^https?:\/\//, '');
-        window.location.href = `https://metamask.app.link/dapp/${dappUrl}`;
-        return;
-      } else {
-        // 데스크톱: 메타마스크 설치 페이지로 이동
-        setWalletError("메타마스크를 설치해주세요.");
-        setTimeout(() => {
-          window.open("https://metamask.io/download/", "_blank");
-        }, 1000);
-        return;
-      }
-    }
-
     try {
-      // 메타마스크 연결 요청
-      const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      });
-      
-      console.log("연결된 계정:", accounts);
-      
-      if (accounts && accounts.length > 0) {
-        setWalletAddress(accounts[0]);
-        
-        // 네트워크 확인 (선택사항)
-        const chainId = await window.ethereum.request({ 
-          method: 'eth_chainId' 
-        });
-        console.log("연결된 네트워크:", chainId);
-        
-        // 계정 변경 감지
-        window.ethereum.on('accountsChanged', (newAccounts) => {
-          if (newAccounts.length === 0) {
-            setWalletAddress("");
-            setWalletError("메타마스크 연결이 해제되었습니다.");
-          } else {
-            setWalletAddress(newAccounts[0]);
-          }
-        });
-        
-      } else {
-        setWalletError("지갑 주소를 가져올 수 없습니다.");
+      // 혹시 이전 세션이 꼬여 있으면 먼저 정리 후 다시 시도
+      if (status === "connecting" || status === "reconnecting") {
+        await disconnect();
       }
-      
+      await open();
     } catch (error) {
-      console.error("메타마스크 연결 에러:", error);
-      
-      if (error.code === 4001) {
-        // 사용자가 연결을 거부
-        setWalletError("연결을 취소하셨습니다.");
-      } else if (error.code === -32002) {
-        // 이미 연결 요청이 진행 중
-        setWalletError("메타마스크에서 연결 요청을 확인해주세요.");
-      } else {
-        setWalletError("지갑 연결에 실패했습니다. 다시 시도해주세요.");
-      }
+      console.error("지갑 연결 에러:", error);
+      setWalletError("지갑 연결에 실패했습니다. 다시 시도해주세요.");
     }
   };
+
+  // wagmi 계정 상태를 화면 상태에 반영
+  useEffect(() => {
+    if (accountAddress) {
+      setWalletAddress(accountAddress);
+      setWalletError("");
+    }
+  }, [accountAddress]);
 
   const handleComplete = async () => {
     try {
@@ -326,10 +321,11 @@ const handleSelectPlace = (place) => {
         business_name: businessName,
         registration_number: registrationNumber,
         wallet_address: walletAddress,
-        address: address,
+        address: storeAddress,
         lat: lat,
         lng: lng
       });
+      localStorage.removeItem("businessFlowState");
       
       setTimeout(() => {
         if (onComplete) {
@@ -526,7 +522,7 @@ const handleSelectPlace = (place) => {
                 </div>
               )}
               
-              {address && !searchResults.length && (
+              {storeAddress && !searchResults.length && (
                 <div style={{ 
                   fontSize: '14px', 
                   color: '#0f6f73', 
@@ -539,7 +535,7 @@ const handleSelectPlace = (place) => {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f6f73" strokeWidth="2.5">
                     <polyline points="20 6 9 17 4 12"/>
                   </svg>
-                  {address}
+                  {storeAddress}
                 </div>
               )}
               

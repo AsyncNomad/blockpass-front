@@ -129,6 +129,18 @@ export default function App() {
     setScreen(screens.CUSTOMER_TICKETS);
   };
 
+  // 화면 상태를 로컬스토리지에 보존해 앱 전환 후에도 복구되도록 함.
+  useEffect(() => {
+    const saved = localStorage.getItem("currentScreen");
+    if (saved && screens[saved.toUpperCase()]) {
+      setScreen(saved);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("currentScreen", screen);
+  }, [screen]);
+
   return (
     <div className={`app ${screen === screens.AUTH ? "logo-docked" : ""}`}>
       <main className="shell">
