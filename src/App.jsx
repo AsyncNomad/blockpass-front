@@ -11,6 +11,8 @@ import CustomerScreen from "./screens/CustomerScreen.jsx";
 import CustomerMainScreen from "./screens/CustomerMainScreen.jsx";
 import CustomerMyScreen from "./screens/CustomerMyScreen.jsx";
 import CustomerRefundScreen from "./screens/CustomerRefundScreen.jsx";
+import CustomerBankruptcyScreen from "./screens/CustomerBankruptcyScreen.jsx";
+import CustomerBankruptcyConfirmScreen from "./screens/CustomerBankruptcyConfirmScreen.jsx";
 import CustomerTermsScreen from "./screens/CustomerTermsScreen.jsx";
 import CustomerTicketsScreen from "./screens/CustomerTicketsScreen.jsx";
 import CustomerAddPassScreen from "./screens/CustomerAddPassScreen.jsx";
@@ -37,6 +39,8 @@ const screens = {
   CUSTOMER_ADD: "customer_add",
   CUSTOMER_TERMS: "customer_terms",
   CUSTOMER_REFUND: "customer_refund",
+  CUSTOMER_BANKRUPTCY: "customer_bankruptcy",
+  CUSTOMER_BANKRUPTCY_CONFIRM: "customer_bankruptcy_confirm",
   OCR_RESULT: "ocr_result",
 };
 
@@ -54,43 +58,43 @@ export default function App() {
 
   // 회원가입 함수
   const registerUser = async (role) => {
-  try {
-    if (role === "business") {
-      // 사업자는 signupData를 localStorage에 저장하고 추가 정보 입력 화면으로
-      localStorage.setItem('signupData', JSON.stringify(signupData));
-      setSignupData(null);
-      setScreen(screens.BUSINESS);
-    } else {
-      // 고객은 바로 회원가입 처리
-      await api.post('/auth/register', {
-        email: signupData.email,
-        password: signupData.password,
-        name: signupData.name,
-        role: role
-      });
-      
-      setSignupData(null);
-      setScreen(screens.SIGNUP_COMPLETE);
-    }
-      
-    } catch (error) {
-      console.error("회원가입 에러:", error);
-      
-      // 에러 메시지 안전하게 추출
-      let errorMessage = "회원가입에 실패했습니다.";
-      if (error.response?.data?.detail) {
-        if (typeof error.response.data.detail === 'string') {
-          errorMessage = error.response.data.detail;
-        } else {
-          errorMessage = JSON.stringify(error.response.data.detail);
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
+    try {
+      if (role === "business") {
+        // 사업자는 signupData를 localStorage에 저장하고 추가 정보 입력 화면으로
+        localStorage.setItem('signupData', JSON.stringify(signupData));
+        setSignupData(null);
+        setScreen(screens.BUSINESS);
+      } else {
+        // 고객은 바로 회원가입 처리
+        await api.post('/auth/register', {
+          email: signupData.email,
+          password: signupData.password,
+          name: signupData.name,
+          role: role
+        });
+        
+        setSignupData(null);
+        setScreen(screens.SIGNUP_COMPLETE);
       }
-      
-      alert(errorMessage);
-      setScreen(screens.AUTH);
-    }
+        
+      } catch (error) {
+        console.error("회원가입 에러:", error);
+        
+        // 에러 메시지 안전하게 추출
+        let errorMessage = "회원가입에 실패했습니다.";
+        if (error.response?.data?.detail) {
+          if (typeof error.response.data.detail === 'string') {
+            errorMessage = error.response.data.detail;
+          } else {
+            errorMessage = JSON.stringify(error.response.data.detail);
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        alert(errorMessage);
+        setScreen(screens.AUTH);
+      }
   };
   const screenTitle = useMemo(() => {
     if (screen === screens.ROLE) {
@@ -129,6 +133,18 @@ export default function App() {
     setResumeExpanded(false);
     setScreen(screens.CUSTOMER_TICKETS);
   };
+
+  // 화면 상태를 로컬스토리지에 보존해 앱 전환 후에도 복구되도록 함.
+  useEffect(() => {
+    const saved = localStorage.getItem("currentScreen");
+    if (saved && screens[saved.toUpperCase()]) {
+      setScreen(saved);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("currentScreen", screen);
+  }, [screen]);
 
   return (
     <div className={`app ${screen === screens.AUTH ? "logo-docked" : ""}`}>
@@ -344,6 +360,12 @@ export default function App() {
                 setResumeExpanded(isExpanded);
                 setScreen(screens.CUSTOMER_REFUND);
               }}
+              onBankruptcy={(ticket, expiresAt, isExpanded) => {
+                setResumeTicket(ticket);
+                setResumeExpiresAt(expiresAt);
+                setResumeExpanded(isExpanded);
+                setScreen(screens.CUSTOMER_BANKRUPTCY);
+              }}
             />
           )}
 
@@ -373,6 +395,18 @@ export default function App() {
           {screen === screens.CUSTOMER_REFUND && (
             <CustomerRefundScreen
               onBack={() => setScreen(screens.CUSTOMER_TICKETS)}
+              onComplete={goCustomerTickets}
+            />
+          )}
+          {screen === screens.CUSTOMER_BANKRUPTCY && (
+            <CustomerBankruptcyScreen
+              onBack={() => setScreen(screens.CUSTOMER_TICKETS)}
+              onNext={() => setScreen(screens.CUSTOMER_BANKRUPTCY_CONFIRM)}
+            />
+          )}
+          {screen === screens.CUSTOMER_BANKRUPTCY_CONFIRM && (
+            <CustomerBankruptcyConfirmScreen
+              onBack={() => setScreen(screens.CUSTOMER_BANKRUPTCY)}
               onComplete={goCustomerTickets}
             />
           )}
