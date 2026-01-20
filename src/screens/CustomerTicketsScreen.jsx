@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import qrImage from "../../assets/qr.png";
 import MainNav from "./MainNav.jsx";
 import api from "../utils/api";
 
@@ -280,7 +281,7 @@ export default function CustomerTicketsScreen({
             ) : (
               <>
                 <div className="qr-box">
-                  <div className="qr-grid" aria-hidden="true" />
+                  <img className="qr-image" src={qrImage} alt="QR code" />
                   {timeLeft === 0 && (
                     <div className="qr-expired">
                       <p>유효 시간이 만료되었어요.</p>

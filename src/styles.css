@@ -370,7 +370,7 @@ body {
   flex-direction: column;
   gap: 18px;
   padding: 16px 0 100px;
-  animation: authSwap 0.4s ease;
+  animation: authFade 0.4s ease;
   position: relative;
 }
 
@@ -805,6 +805,9 @@ body {
   border: 1px solid rgba(15, 111, 115, 0.12);
   position: relative;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .qr-grid {
@@ -814,6 +817,14 @@ body {
     linear-gradient(rgba(15, 111, 115, 0.2) 1px, transparent 1px);
   background-size: 16px 16px;
   opacity: 0.55;
+}
+
+.qr-image {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  display: block;
+  background: #fff;
 }
 
 .qr-expired {
@@ -1918,6 +1929,15 @@ input {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes authFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
