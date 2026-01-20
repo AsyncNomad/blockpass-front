@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import BackButton from "./BackButton.jsx";
 import api from "../utils/api";
 
 export default function AuthScreen({ onSubmit, onBack }) {
@@ -203,7 +202,6 @@ export default function AuthScreen({ onSubmit, onBack }) {
 
   return (
     <div className="card auth-card" key="auth">
-      {onBack && <BackButton onBack={onBack} />}
       <p className="card-title">시작해볼게요.</p>
       <div className="auth-panel" key={mode}>
         <form className="form" onSubmit={handleSubmit}>

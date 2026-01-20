@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import BackButton from "./BackButton.jsx";
 import LoadingScreen from "./LoadingScreen.jsx";
 import api from "../utils/api";
@@ -24,6 +24,17 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
   const [showLoading, setShowLoading] = useState(false);
   const [showPaidScreen, setShowPaidScreen] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const [cameraError, setCameraError] = useState("");
+  const [cameraReady, setCameraReady] = useState(false);
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+  const [scanComplete, setScanComplete] = useState(false);
+  const [capturedUrl, setCapturedUrl] = useState("");
+  const [deployReady, setDeployReady] = useState(false);
+  const [showPaperComplete, setShowPaperComplete] = useState(false);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
   const { isConnected } = useAccount();
   const { open } = useWeb3Modal();
   const chainId = useChainId();
@@ -71,6 +82,65 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
     }, 1400);
     return () => clearTimeout(timer);
   }, [showPaidScreen, onComplete]);
+
+  useEffect(() => {
+    if (mode !== "paper") {
+      return undefined;
+    }
+    let cancelled = false;
+    const enableCamera = async () => {
+      try {
+        setCameraError("");
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+          audio: false,
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+        setCameraReady(true);
+      } catch (err) {
+        console.error("카메라 권한 실패:", err);
+        setCameraError("카메라 권한이 필요합니다. 설정에서 허용해주세요.");
+      }
+    };
+    enableCamera();
+    return () => {
+      cancelled = true;
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+      setCameraReady(false);
+    };
+  }, [mode]);
+
+  useEffect(() => {
+    if (!scanComplete) {
+      return undefined;
+    }
+    const timer = setTimeout(() => {
+      setScanComplete(false);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [scanComplete]);
+
+  useEffect(() => {
+    if (!showPaperComplete) {
+      return undefined;
+    }
+    const timer = setTimeout(() => {
+      if (onComplete) {
+        onComplete();
+      }
+    }, 1400);
+    return () => clearTimeout(timer);
+  }, [showPaperComplete, onComplete]);
 
   const handleNext = () => {
     if (!canNext) {
@@ -172,6 +242,60 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
     }
   };
 
+  const handleScanCapture = async () => {
+    if (!videoRef.current || !canvasRef.current || scanLoading) {
+      return;
+    }
+    setScanLoading(true);
+    try {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth || 720;
+      canvas.height = video.videoHeight || 1280;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+      if (capturedUrl) {
+        URL.revokeObjectURL(capturedUrl);
+      }
+      setCapturedUrl(URL.createObjectURL(blob));
+      const formData = new FormData();
+      formData.append("image", blob, "ocr.png");
+      const response = await api.post("/ocr/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setScanResult(response.data?.result || response.data || null);
+      setScanComplete(true);
+    } catch (err) {
+      console.error("OCR 스캔 실패:", err);
+      setCameraError("스캔에 실패했습니다. 다시 시도해주세요.");
+    } finally {
+      setScanLoading(false);
+    }
+  };
+
+  const renderParsedRows = () => {
+    if (!scanResult) {
+      return [];
+    }
+    const data =
+      scanResult.fields ||
+      scanResult.parsed_data ||
+      scanResult.result ||
+      scanResult;
+    if (!data || typeof data !== "object") {
+      return [];
+    }
+    return Object.entries(data).map(([key, value]) => ({
+      label: String(key).replace(/_/g, " "),
+      value: typeof value === "object" ? JSON.stringify(value) : String(value),
+    }));
+  };
+
   return (
     <div className="main-screen">
       {mode === "choice" && (
@@ -179,7 +303,7 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
           {onBack && <BackButton onBack={onBack} />}
           <h2 className="main-title">새로운 이용권을 추가해볼게요.</h2>
           <div className="role-grid add-pass-grid">
-            <button className="role" type="button">
+            <button className="role" type="button" onClick={() => setMode("paper")}>
               <span className="role-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" role="img">
                   <rect x="4" y="5" width="16" height="14" rx="2" />
@@ -307,6 +431,82 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
         <section className="main-section">
           <div className="complete-block">
             <h2 className="complete-title">결제가 완료되었어요.</h2>
+          </div>
+        </section>
+      )}
+
+      {mode === "paper" && !showPaperComplete && (
+        <section className="main-section scan-section">
+          {onBack && <BackButton onBack={onBack} />}
+          <h2 className="scan-title">계약서를 화면 내 사각형에 맞춰주세요.</h2>
+          <div className="scan-frame">
+            {cameraError && <div className="scan-error">{cameraError}</div>}
+            <div className="scan-window">
+              {capturedUrl ? (
+                <img src={capturedUrl} alt="captured" />
+              ) : (
+                <video ref={videoRef} autoPlay playsInline muted />
+              )}
+              <div className="scan-guide" aria-hidden="true" />
+            </div>
+          </div>
+          <canvas ref={canvasRef} className="scan-canvas" />
+
+          {!scanResult && (
+            <button
+              className="wallet-button"
+              type="button"
+              onClick={handleScanCapture}
+              disabled={!cameraReady || scanLoading}
+            >
+              {scanLoading ? "업로드 중..." : "스캔하기"}
+            </button>
+          )}
+
+          {scanComplete && (
+            <div className="complete-block">
+              <h2 className="complete-title">스캔이 완료되었어요.</h2>
+            </div>
+          )}
+
+          {scanResult && !scanComplete && (
+            <div className="scan-result">
+              <h3>계약서 요약</h3>
+              <div className="scan-grid">
+                {renderParsedRows().length === 0 && (
+                  <div className="scan-empty">인식된 데이터가 없습니다.</div>
+                )}
+                {renderParsedRows().map((row) => (
+                  <div className="scan-row" key={row.label}>
+                    <span className="scan-label">{row.label}</span>
+                    <span className="scan-value">{row.value}</span>
+                  </div>
+                ))}
+              </div>
+              <button
+                className={`wallet-button ${deployReady ? "is-ready" : ""}`}
+                type="button"
+                onClick={() => setDeployReady(true)}
+              >
+                메타마스크 지갑으로 배포하기
+              </button>
+              <button
+                className="next-button cta-static"
+                type="button"
+                disabled={!deployReady}
+                onClick={() => setShowPaperComplete(true)}
+              >
+                완료
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {mode === "paper" && showPaperComplete && (
+        <section className="main-section">
+          <div className="complete-block">
+            <h2 className="complete-title">등록이 완료되었어요.</h2>
           </div>
         </section>
       )}
