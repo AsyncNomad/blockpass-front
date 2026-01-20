@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import BackButton from "./BackButton.jsx";
 import LoadingScreen from "./LoadingScreen.jsx";
 import api from "../utils/api";
+import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from "wagmi";
+import { useWeb3Modal } from "@web3modal/wagmi/react";
+import { parseEther } from "viem";
+import { blockpassAbi } from "../contracts/blockpassPass.js";
+import { sepolia } from "wagmi/chains";
 
 export default function CustomerAddPassScreen({ onComplete, onBack }) {
   const [mode, setMode] = useState("choice");
@@ -18,6 +23,13 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
   const [paid, setPaid] = useState(false);
   const [showLoading, setShowLoading] = useState(false);
   const [showPaidScreen, setShowPaidScreen] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
+  const { isConnected } = useAccount();
+  const { open } = useWeb3Modal();
+  const chainId = useChainId();
+  const { switchChainAsync } = useSwitchChain();
+  const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient();
 
   const filteredMerchants = useMemo(() => {
     const keyword = query.trim();
@@ -47,17 +59,6 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
     };
     fetchMerchants();
   }, []);
-
-  useEffect(() => {
-    if (!showLoading) {
-      return undefined;
-    }
-    const timer = setTimeout(() => {
-      setShowLoading(false);
-      setShowPaidScreen(true);
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [showLoading]);
 
   useEffect(() => {
     if (!showPaidScreen) {
@@ -113,14 +114,60 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
       alert("이용권을 선택해주세요.");
       return;
     }
+    if (!accepted) {
+      setShowTerms(true);
+      return;
+    }
+    if (!selectedPass.contract_address) {
+      alert("이용권이 아직 블록체인에 배포되지 않았어요.");
+      return;
+    }
+    if (!isConnected) {
+      await open();
+      return;
+    }
+    if (chainId !== sepolia.id) {
+      setPaymentError("Sepolia 네트워크로 전환해주세요.");
+      if (switchChainAsync) {
+        try {
+          await switchChainAsync({ chainId: sepolia.id });
+        } catch (error) {
+          console.error("네트워크 전환 실패:", error);
+        }
+      }
+      return;
+    }
+    if (!walletClient || !publicClient) {
+      alert("지갑 연결 상태를 확인해주세요.");
+      return;
+    }
     try {
+      const me = await api.get("/auth/me");
+      if (me?.data?.role !== "customer") {
+        setPaymentError("고객 계정으로 로그인되어 있지 않습니다.");
+        return;
+      }
+      setPaymentError("");
       setPaid(true);
       setShowLoading(true);
-      await api.post(`/orders/purchase/${selectedPass.id}`);
+      const hash = await walletClient.writeContract({
+        address: selectedPass.contract_address,
+        abi: blockpassAbi,
+        functionName: "purchase",
+        value: parseEther(String(selectedPass.price)),
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+      await api.post(`/orders/purchase/${selectedPass.id}`, {
+        tx_hash: hash,
+        chain: "sepolia",
+      });
+      setShowLoading(false);
+      setShowPaidScreen(true);
     } catch (err) {
       console.error("결제 실패:", err);
       setPaid(false);
       setShowLoading(false);
+      setPaymentError("결제에 실패했습니다. 다시 시도해주세요.");
       alert("결제에 실패했습니다. 다시 시도해주세요.");
     }
   };
@@ -235,6 +282,7 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
               >
                 메타마스크로 결제하기
               </button>
+              {paymentError && <p className="wallet-error">{paymentError}</p>}
             </div>
           )}
 
@@ -273,7 +321,21 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
               </button>
             </div>
             <div className="terms-body">
-              <p>이용권은 결제 즉시 활성화되며 환불 규정은 스마트 컨트랙트로 고정돼요.</p>
+              <p>{selectedPass?.terms || "등록된 이용 약관이 없습니다."}</p>
+              {Array.isArray(selectedPass?.refund_rules) &&
+                selectedPass.refund_rules.length > 0 && (
+                <div style={{ marginTop: "12px" }}>
+                  {selectedPass.refund_rules.map((rule, index) => (
+                    <p key={`refund-${index}`}>
+                      {rule.period}
+                      {rule.unit} 미만 사용 시 {rule.refund_percent}% 환불
+                    </p>
+                  ))}
+                </div>
+              )}
+              <p style={{ marginTop: "12px" }}>
+                이용권은 결제 즉시 활성화되며 환불 규정은 스마트 컨트랙트로 고정돼요.
+              </p>
               <p>동의 시 메타마스크 지갑 서명이 필요합니다.</p>
             </div>
             <button className="wallet-button" type="button" onClick={handleAccept}>

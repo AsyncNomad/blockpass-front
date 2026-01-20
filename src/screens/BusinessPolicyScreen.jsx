@@ -1,7 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import BackButton from "./BackButton.jsx";
 import LoadingScreen from "./LoadingScreen.jsx";
 import api from "../utils/api"; // 추가
+import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from "wagmi";
+import { useWeb3Modal } from "@web3modal/wagmi/react";
+import { parseEther } from "viem";
+import { blockpassAbi, blockpassBytecode } from "../contracts/blockpassPass.js";
+import { sepolia } from "wagmi/chains";
 
 const units = ["일", "시간", "분"];
 const initialRefundRules = [{ period: "", unit: "일", refund: "" }];
@@ -16,6 +21,23 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
   const [refundRules, setRefundRules] = useState(initialRefundRules);
   const [showLoading, setShowLoading] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
+  const [savedPass, setSavedPass] = useState(null);
+  const [deployError, setDeployError] = useState("");
+  const saveTriggered = useRef(false);
+  const { isConnected } = useAccount();
+  const { open } = useWeb3Modal();
+  const chainId = useChainId();
+  const { switchChainAsync } = useSwitchChain();
+  const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient();
+
+  const toSeconds = (period, unit) => {
+    const value = Number(period);
+    if (!Number.isFinite(value)) return 0;
+    if (unit === "일") return value * 24 * 60 * 60;
+    if (unit === "시간") return value * 60 * 60;
+    return value * 60;
+  };
 
   const canNext = useMemo(() => {
     if (step === 1) {
@@ -78,62 +100,103 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
     });
   };
 
-  const handleDeploy = () => {
-    setShowLoading(true);
+  const handleDeploy = async () => {
+    setDeployError("");
+    if (!isConnected) {
+      await open();
+      return;
+    }
+    if (!blockpassBytecode || blockpassBytecode === "0x") {
+      setDeployError("컨트랙트 빌드가 필요합니다. build:contracts를 먼저 실행해주세요.");
+      return;
+    }
+    if (chainId !== sepolia.id) {
+      setDeployError("Sepolia 네트워크로 전환해주세요.");
+      if (switchChainAsync) {
+        try {
+          await switchChainAsync({ chainId: sepolia.id });
+        } catch (error) {
+          console.error("네트워크 전환 실패:", error);
+        }
+      }
+      return;
+    }
+    if (!walletClient || !publicClient) {
+      setDeployError("지갑 연결 상태를 확인해주세요.");
+      return;
+    }
+    try {
+      setShowLoading(true);
+
+      const durationSeconds = toSeconds(durationValue, durationUnit);
+      if (!durationSeconds) {
+        throw new Error("duration_invalid");
+      }
+      const thresholds = refundRules.map((rule) =>
+        BigInt(toSeconds(rule.period, rule.unit))
+      );
+      const percents = refundRules.map((rule) => BigInt(Number(rule.refund)));
+
+      const hash = await walletClient.deployContract({
+        abi: blockpassAbi,
+        bytecode: blockpassBytecode,
+        args: [parseEther(passPriceEth), BigInt(durationSeconds), thresholds, percents],
+      });
+
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const contractAddress = receipt.contractAddress;
+      if (!contractAddress) {
+        throw new Error("컨트랙트 주소를 확인할 수 없습니다.");
+      }
+
+      let durationMinutes = parseInt(durationValue, 10);
+      if (durationUnit === "일") {
+        durationMinutes = durationMinutes * 24 * 60;
+      } else if (durationUnit === "시간") {
+        durationMinutes = durationMinutes * 60;
+      }
+      const durationInDays = Math.max(1, Math.ceil(durationMinutes / (24 * 60)));
+
+      const response = await api.post("/business/passes", {
+        title: passName,
+        terms,
+        price: parseFloat(passPriceEth),
+        duration_days: durationInDays,
+        duration_minutes: durationMinutes,
+        refund_rules: refundRules.map((rule) => ({
+          period: Number(rule.period),
+          unit: rule.unit,
+          refund_percent: Number(rule.refund),
+        })),
+        contract_address: contractAddress,
+        contract_chain: publicClient.chain ? String(publicClient.chain.id) : "sepolia",
+      });
+
+      setShowLoading(false);
+      setSavedPass(response?.data ?? null);
+      setShowComplete(true);
+    } catch (error) {
+      console.error("컨트랙트 배포 실패:", error);
+      setShowLoading(false);
+      setDeployError("배포에 실패했습니다. 다시 시도해주세요.");
+    }
   };
 
   useEffect(() => {
-    if (!showLoading) {
+    if (!showComplete || !savedPass) {
       return undefined;
     }
+    if (saveTriggered.current) {
+      return undefined;
+    }
+    saveTriggered.current = true;
     const timer = setTimeout(() => {
-      setShowLoading(false);
-      setShowComplete(true);
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [showLoading]);
-
-  useEffect(() => {
-    if (!showComplete) {
-      return undefined;
-    }
-    const timer = setTimeout(async () => {
-      try {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-          alert("로그인이 필요합니다. 다시 로그인해주세요.");
-          if (onCancel) {
-            onCancel();
-          }
-          return;
-        }
-        // duration을 분 단위로 저장
-        let durationMinutes = parseInt(durationValue, 10);
-        if (durationUnit === "일") {
-          durationMinutes = durationMinutes * 24 * 60;
-        } else if (durationUnit === "시간") {
-          durationMinutes = durationMinutes * 60;
-        }
-        const durationInDays = Math.max(1, Math.ceil(durationMinutes / (24 * 60)));
-        
-        // 백엔드 API로 이용권 생성
-        await api.post('/business/passes', {
-          title: passName,
-          terms: terms,
-          price: parseFloat(passPriceEth), // ETH 그대로 저장
-          duration_days: durationInDays,
-          duration_minutes: durationMinutes,
-        });
-      } catch (error) {
-        console.error("이용권 생성 실패:", error);
-      }
-      
       if (onSave) {
-        onSave();
+        onSave(savedPass);
       }
-    }, 1400);
+    }, 1800);
     return () => clearTimeout(timer);
-  }, [showComplete, onSave, passName, passPriceEth, durationValue, durationUnit]);
+  }, [showComplete, onSave, savedPass]);
 
   if (showLoading) {
     return (
@@ -306,6 +369,7 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
             <button className="wallet-button" type="button" onClick={handleDeploy}>
               메타마스크 지갑으로 배포하기
             </button>
+            {deployError && <p className="wallet-error">{deployError}</p>}
           </div>
         )}
 

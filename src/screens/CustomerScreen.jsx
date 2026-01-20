@@ -18,6 +18,7 @@ export default function CustomerScreen({ onComplete, onBack }) {
   const [stepIndex, setStepIndex] = useState(-1);
   const [walletAddress, setWalletAddress] = useState("");
   const [walletError, setWalletError] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveComplete, setSaveComplete] = useState(false);
 
@@ -32,6 +33,10 @@ export default function CustomerScreen({ onComplete, onBack }) {
   );
 
   const handleNext = () => {
+    if (stepIndex === -1) {
+      setStepIndex(0);
+      return;
+    }
     if (!isStepValid) {
       return;
     }
@@ -65,9 +70,13 @@ export default function CustomerScreen({ onComplete, onBack }) {
       if (!token) {
         throw new Error("로그인이 필요합니다. 다시 로그인해주세요.");
       }
-      await api.patch("/auth/profile", {
+      const response = await api.patch("/auth/profile", {
         wallet_address: walletAddress,
       });
+      if (response?.data?.status !== "success") {
+        throw new Error("지갑 주소 저장에 실패했습니다.");
+      }
+      localStorage.setItem("user_wallet_address", walletAddress);
       setSaveComplete(true);
       setTimeout(() => {
         if (onComplete) {
@@ -88,13 +97,22 @@ export default function CustomerScreen({ onComplete, onBack }) {
     }
   }, [address]);
 
+  useEffect(() => {
+    const storedName = localStorage.getItem("user_name");
+    if (storedName) {
+      setDisplayName(storedName);
+    }
+  }, []);
+
   return (
     <div className="flow-screen business-flow" key="customer">
       {onBack && !isComplete && <BackButton onBack={onBack} />}
       {isIntro && (
         <>
           <div className="greeting-block">
-            <h2 className="greeting-title">홍길동 고객님,</h2>
+            <h2 className="greeting-title">
+              {displayName ? `${displayName} 고객님,` : "고객님,"}
+            </h2>
             <p className="greeting-sub">
               이용권 구매를 위해 필요한 몇 가지 질문에 답변해주세요.
             </p>

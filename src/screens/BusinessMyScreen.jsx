@@ -54,7 +54,19 @@ export default function BusinessMyScreen({ onMembers, onMain, onMy, onLogout }) 
               : profile.wallet_address || "등록된 지갑이 없습니다."}
           </div>
         </div>
-        <button className="logout-button" type="button" onClick={onLogout}>
+        <button
+          className="logout-button"
+          type="button"
+          onClick={() => {
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("user_role");
+            localStorage.removeItem("user_name");
+            localStorage.removeItem("currentScreen");
+            if (onLogout) {
+              onLogout();
+            }
+          }}
+        >
           <span className="button-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" role="img">
               <path d="M9 6v2H4v8h5v2H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z" />

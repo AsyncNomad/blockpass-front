@@ -169,7 +169,10 @@ export default function AuthScreen({ onSubmit, onBack }) {
           }
         });
 
-        // 토큰 저장
+        // 기존 세션 정리 후 토큰 저장
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user_role');
+        localStorage.removeItem('user_name');
         localStorage.setItem('access_token', response.data.access_token);
         localStorage.setItem('user_role', response.data.role);
         localStorage.setItem('user_name', response.data.user_info?.name || '');

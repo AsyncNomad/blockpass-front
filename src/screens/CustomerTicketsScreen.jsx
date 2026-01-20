@@ -154,7 +154,13 @@ export default function CustomerTicketsScreen({
           const endAt = row.end_at;
           return {
             id: row.id,
+            passId: row.pass_id,
             title: row.title,
+            price: row.price,
+            terms: row.terms,
+            contract_address: row.contract_address,
+            contract_chain: row.contract_chain,
+            refund_rules: row.refund_rules || [],
             startAt,
             endAt,
             durationMinutes: row.duration_minutes,
@@ -213,7 +219,7 @@ export default function CustomerTicketsScreen({
             return (
               <button
                 className={`ticket-card ticket-button ${isExpired ? "is-expired" : ""}`}
-                key={ticket.title}
+                key={ticket.id}
                 type="button"
                 onClick={() => openQr(ticket)}
               >

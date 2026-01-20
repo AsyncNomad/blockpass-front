@@ -69,7 +69,7 @@ export default function BusinessMainScreen({
                 onClick={() => onTerms?.(pass)}
               >
                 <div className="main-card-title">{pass.title}</div>
-                <div className="main-card-sub">{pass.price} KRW</div>
+                <div className="main-card-sub">{pass.price} ETH</div>
               </button>
             ))}
           </div>

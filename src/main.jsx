@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { WagmiProvider } from "wagmi";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { wagmiConfig, queryClient } from "./web3Modal.js";
+import "./web3ModalInit.js";
 import App from "./App.jsx";
 import "./styles.css";
 

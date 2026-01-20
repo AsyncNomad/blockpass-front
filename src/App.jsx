@@ -45,7 +45,21 @@ const screens = {
 };
 
 export default function App() {
-  const [screen, setScreen] = useState(screens.LANDING);
+  const [screen, setScreen] = useState(() => {
+    const saved = localStorage.getItem("currentScreen");
+    if (saved && Object.values(screens).includes(saved)) {
+      return saved;
+    }
+    const token = localStorage.getItem("access_token");
+    const role = localStorage.getItem("user_role");
+    if (token && role === "business") {
+      return screens.BUSINESS_MAIN;
+    }
+    if (token && role === "customer") {
+      return screens.CUSTOMER_MAIN;
+    }
+    return screens.LANDING;
+  });
   const [currentDocId, setCurrentDocId] = useState(null);
   const [signupData, setSignupData] = useState(() => {
     try {
@@ -164,14 +178,6 @@ export default function App() {
     setResumeExpanded(false);
     setScreen(screens.CUSTOMER_TICKETS);
   };
-
-  // 화면 상태를 로컬스토리지에 보존해 앱 전환 후에도 복구되도록 함.
-  useEffect(() => {
-    const saved = localStorage.getItem("currentScreen");
-    if (saved && screens[saved.toUpperCase()]) {
-      setScreen(saved);
-    }
-  }, []);
 
   useEffect(() => {
     localStorage.setItem("currentScreen", screen);
@@ -418,11 +424,15 @@ export default function App() {
           )}
 
           {screen === screens.CUSTOMER_TERMS && (
-            <CustomerTermsScreen onBack={() => setScreen(screens.CUSTOMER_TICKETS)} />
+            <CustomerTermsScreen
+              ticket={resumeTicket}
+              onBack={() => setScreen(screens.CUSTOMER_TICKETS)}
+            />
           )}
 
           {screen === screens.CUSTOMER_REFUND && (
             <CustomerRefundScreen
+              ticket={resumeTicket}
               onBack={() => setScreen(screens.CUSTOMER_TICKETS)}
               onComplete={goCustomerTickets}
             />
@@ -435,6 +445,7 @@ export default function App() {
           )}
           {screen === screens.CUSTOMER_BANKRUPTCY_CONFIRM && (
             <CustomerBankruptcyConfirmScreen
+              ticket={resumeTicket}
               onBack={() => setScreen(screens.CUSTOMER_BANKRUPTCY)}
               onComplete={goCustomerTickets}
             />

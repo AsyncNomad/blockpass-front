@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAccount } from "wagmi";
 import MainNav from "./MainNav.jsx";
 import api from "../utils/api";
 
@@ -6,6 +7,8 @@ export default function CustomerMyScreen({ onTickets, onMain, onMy, onLogout }) 
   const [profile, setProfile] = useState({ name: "", wallet_address: "" });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const { address } = useAccount();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -22,6 +25,28 @@ export default function CustomerMyScreen({ onTickets, onMain, onMy, onLogout }) 
     };
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    const syncWallet = async () => {
+      if (!address || profile.wallet_address || syncing) {
+        return;
+      }
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        return;
+      }
+      try {
+        setSyncing(true);
+        await api.patch("/auth/profile", { wallet_address: address });
+        setProfile((prev) => ({ ...prev, wallet_address: address }));
+      } catch (err) {
+        console.error("지갑 주소 동기화 실패:", err);
+      } finally {
+        setSyncing(false);
+      }
+    };
+    syncWallet();
+  }, [address, profile.wallet_address, syncing]);
 
   return (
     <div className="main-screen">
@@ -54,7 +79,19 @@ export default function CustomerMyScreen({ onTickets, onMain, onMy, onLogout }) 
               : profile.wallet_address || "등록된 지갑이 없습니다."}
           </div>
         </div>
-        <button className="logout-button" type="button" onClick={onLogout}>
+        <button
+          className="logout-button"
+          type="button"
+          onClick={() => {
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("user_role");
+            localStorage.removeItem("user_name");
+            localStorage.removeItem("currentScreen");
+            if (onLogout) {
+              onLogout();
+            }
+          }}
+        >
           <span className="button-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" role="img">
               <path d="M9 6v2H4v8h5v2H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z" />
