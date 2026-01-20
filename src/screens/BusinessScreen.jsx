@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
+import { walletEnabled } from "../web3Modal.js";
 import BackButton from "./BackButton.jsx";
 import api from "../utils/api";
 
@@ -33,7 +34,8 @@ export default function BusinessScreen({
   }, []);
   const { address: accountAddress, isConnecting, status } = useAccount();
   const { disconnect } = useDisconnect();
-  const { open } = useWeb3Modal();
+  const web3Modal = walletEnabled ? useWeb3Modal() : { open: async () => {} };
+  const { open } = web3Modal;
   const [passes, setPasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -277,6 +279,10 @@ const handleSelectPlace = (place) => {
   };
   const handleWalletConnect = async () => {
     setWalletError("");
+    if (!walletEnabled) {
+      setWalletError("지갑 연결이 비활성화되어 있습니다.");
+      return;
+    }
     try {
       // 혹시 이전 세션이 꼬여 있으면 먼저 정리 후 다시 시도
       if (status === "connecting" || status === "reconnecting") {

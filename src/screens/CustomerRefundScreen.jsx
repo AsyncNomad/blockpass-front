@@ -4,6 +4,7 @@ import LoadingScreen from "./LoadingScreen.jsx";
 import api from "../utils/api";
 import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from "wagmi";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
+import { walletEnabled } from "../web3Modal.js";
 import { blockpassAbi } from "../contracts/blockpassPass.js";
 import { sepolia } from "wagmi/chains";
 
@@ -49,7 +50,8 @@ export default function CustomerRefundScreen({ ticket, onBack, onComplete }) {
   const [showComplete, setShowComplete] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const { isConnected } = useAccount();
-  const { open } = useWeb3Modal();
+  const web3Modal = walletEnabled ? useWeb3Modal() : { open: async () => {} };
+  const { open } = web3Modal;
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { data: walletClient } = useWalletClient();
@@ -127,6 +129,10 @@ export default function CustomerRefundScreen({ ticket, onBack, onComplete }) {
           type="button"
           onClick={async () => {
             setErrorMessage("");
+            if (!walletEnabled) {
+              setErrorMessage("지갑 연결이 비활성화되어 있습니다.");
+              return;
+            }
             if (!ticket?.contract_address) {
               setErrorMessage("계약 정보를 찾을 수 없습니다.");
               return;
