@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { defaultWagmiConfig } from "@web3modal/wagmi/react";
 import { createConfig, http } from "wagmi";
+import { injected } from "wagmi/connectors";
 import { sepolia } from "wagmi/chains";
 
 // WalletConnect Project ID는 .env에 VITE_WALLETCONNECT_PROJECT_ID로 설정하세요.
@@ -32,7 +33,7 @@ export const wagmiConfig = walletEnabled
   : createConfig({
       chains,
       transports: { [sepolia.id]: http() },
-      connectors: [],
+      connectors: [injected()],
     });
 
 export const queryClient = new QueryClient();

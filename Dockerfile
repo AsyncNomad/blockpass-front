@@ -1,12 +1,16 @@
-FROM node:20-alpine
-
+FROM node:18-alpine AS build
 WORKDIR /app
 
-COPY package*.json ./
+COPY package.json package-lock.json ./
 RUN npm install
 
 COPY . .
+ARG VITE_API_BASE_URL=/api/v1
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+RUN npm run build
 
-EXPOSE 3002
-
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3002"]
+FROM node:18-alpine
+WORKDIR /app
+COPY --from=build /app /app
+EXPOSE 3000
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "3000"]

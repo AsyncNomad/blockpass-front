@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import BackButton from "./BackButton.jsx";
 import LoadingScreen from "./LoadingScreen.jsx";
 import api from "../utils/api"; // 추가
-import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from "wagmi";
+import { useAccount, useChainId, useConnect, usePublicClient, useSwitchChain, useWalletClient } from "wagmi";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { walletEnabled } from "../web3Modal.js";
 import { parseEther } from "viem";
@@ -26,6 +26,7 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
   const [deployError, setDeployError] = useState("");
   const saveTriggered = useRef(false);
   const { isConnected } = useAccount();
+  const { connectAsync, connectors } = useConnect();
   const web3Modal = walletEnabled ? useWeb3Modal() : { open: async () => {} };
   const { open } = web3Modal;
   const chainId = useChainId();
@@ -102,14 +103,24 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
     });
   };
 
-  const handleDeploy = async () => {
-    setDeployError("");
-    if (!walletEnabled) {
-      setDeployError("지갑 연결이 비활성화되어 있습니다.");
+  const connectInjected = async () => {
+    const connector =
+      connectors.find((item) => item.id === "injected") || connectors[0];
+    if (!connector) {
+      setDeployError("?????? ??? ???.");
       return;
     }
+    await connectAsync({ connector });
+  };
+
+  const handleDeploy = async () => {
+    setDeployError("");
     if (!isConnected) {
-      await open();
+      if (walletEnabled) {
+        await open();
+      } else {
+        await connectInjected();
+      }
       return;
     }
     if (!blockpassBytecode || blockpassBytecode === "0x") {

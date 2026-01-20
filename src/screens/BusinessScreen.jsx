@@ -1,6 +1,6 @@
 // C:\Project\kaist\2_week\blockpass-front\src\screens\BusinessScreen.jsx
 import { useEffect, useMemo, useState, useRef } from "react";
-import { useAccount, useDisconnect } from "wagmi";
+import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { walletEnabled } from "../web3Modal.js";
 import BackButton from "./BackButton.jsx";
@@ -33,6 +33,7 @@ export default function BusinessScreen({
     console.info("[BusinessScreen] build marker: 2026-01-19T06:05Z");
   }, []);
   const { address: accountAddress, isConnecting, status } = useAccount();
+  const { connectAsync, connectors } = useConnect();
   const { disconnect } = useDisconnect();
   const web3Modal = walletEnabled ? useWeb3Modal() : { open: async () => {} };
   const { open } = web3Modal;
@@ -277,21 +278,31 @@ const handleSelectPlace = (place) => {
     // 그 외 단계에서 뒤로가기
     setStepIndex((prev) => prev - 1);
   };
-  const handleWalletConnect = async () => {
-    setWalletError("");
-    if (!walletEnabled) {
-      setWalletError("지갑 연결이 비활성화되어 있습니다.");
+  const connectInjected = async () => {
+    const connector =
+      connectors.find((item) => item.id === "injected") || connectors[0];
+    if (!connector) {
+      setWalletError("?????? ??? ???.");
       return;
     }
+    await connectAsync({ connector });
+  };
+
+  const handleWalletConnect = async () => {
+    setWalletError("");
     try {
-      // 혹시 이전 세션이 꼬여 있으면 먼저 정리 후 다시 시도
+      // ?? ??? ?? ??? ?? ? ???
       if (status === "connecting" || status === "reconnecting") {
         await disconnect();
       }
-      await open();
+      if (walletEnabled) {
+        await open();
+      } else {
+        await connectInjected();
+      }
     } catch (error) {
-      console.error("지갑 연결 에러:", error);
-      setWalletError("지갑 연결에 실패했습니다. 다시 시도해주세요.");
+      console.error("?? ?? ??:", error);
+      setWalletError("?? ??? ??????. ?? ??? ???.");
     }
   };
 

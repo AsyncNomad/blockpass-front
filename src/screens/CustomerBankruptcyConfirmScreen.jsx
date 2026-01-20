@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import BackButton from "./BackButton.jsx";
 import LoadingScreen from "./LoadingScreen.jsx";
 import api from "../utils/api";
-import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from "wagmi";
+import { useAccount, useChainId, useConnect, usePublicClient, useSwitchChain, useWalletClient } from "wagmi";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { walletEnabled } from "../web3Modal.js";
 import { blockpassAbi } from "../contracts/blockpassPass.js";
@@ -13,12 +13,23 @@ export default function CustomerBankruptcyConfirmScreen({ ticket, onBack, onComp
   const [showComplete, setShowComplete] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const { isConnected } = useAccount();
+  const { connectAsync, connectors } = useConnect();
   const web3Modal = walletEnabled ? useWeb3Modal() : { open: async () => {} };
   const { open } = web3Modal;
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
+
+  const connectInjected = async () => {
+    const connector =
+      connectors.find((item) => item.id === "injected") || connectors[0];
+    if (!connector) {
+      setErrorMessage("?? ??? ??? ? ????.");
+      return;
+    }
+    await connectAsync({ connector });
+  };
 
   useEffect(() => {
     if (!showComplete) {
@@ -83,16 +94,16 @@ export default function CustomerBankruptcyConfirmScreen({ ticket, onBack, onComp
           type="button"
           onClick={async () => {
             setErrorMessage("");
-            if (!walletEnabled) {
-              setErrorMessage("지갑 연결이 비활성화되어 있습니다.");
-              return;
-            }
             if (!ticket?.contract_address) {
               setErrorMessage("계약 정보를 찾을 수 없습니다.");
               return;
             }
             if (!isConnected) {
-              await open();
+              if (walletEnabled) {
+                await open();
+              } else {
+                await connectInjected();
+              }
               return;
             }
             if (chainId !== sepolia.id) {

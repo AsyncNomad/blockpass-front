@@ -2,10 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import BackButton from "./BackButton.jsx";
 import LoadingScreen from "./LoadingScreen.jsx";
 import api from "../utils/api";
-import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from "wagmi";
+import { useAccount, useChainId, useConnect, usePublicClient, useSwitchChain, useWalletClient } from "wagmi";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { walletEnabled } from "../web3Modal.js";
-import { parseEther } from "viem";
 import { blockpassAbi } from "../contracts/blockpassPass.js";
 import { sepolia } from "wagmi/chains";
 
@@ -33,10 +32,14 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
   const [capturedUrl, setCapturedUrl] = useState("");
   const [deployReady, setDeployReady] = useState(false);
   const [showPaperComplete, setShowPaperComplete] = useState(false);
+  const [ocrDocumentId, setOcrDocumentId] = useState(null);
+  const [contractCreating, setContractCreating] = useState(false);
+  const [contractError, setContractError] = useState("");
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
+  const { connectAsync, connectors } = useConnect();
   const web3Modal = walletEnabled ? useWeb3Modal() : { open: async () => {} };
   const { open } = web3Modal;
   const chainId = useChainId();
@@ -181,11 +184,17 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
     setShowTerms(false);
   };
 
-  const handlePay = async () => {
-    if (!walletEnabled) {
-      setPaymentError("지갑 연결이 비활성화되어 있습니다.");
+  const connectInjected = async () => {
+    const connector =
+      connectors.find((item) => item.id === "injected") || connectors[0];
+    if (!connector) {
+      setPaymentError("?????? ??? ???.");
       return;
     }
+    await connectAsync({ connector });
+  };
+
+  const handlePay = async () => {
     if (!selectedPass?.id) {
       alert("이용권을 선택해주세요.");
       return;
@@ -199,7 +208,11 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
       return;
     }
     if (!isConnected) {
-      await open();
+      if (walletEnabled) {
+        await open();
+      } else {
+        await connectInjected();
+      }
       return;
     }
     if (chainId !== sepolia.id) {
@@ -226,12 +239,25 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
       setPaymentError("");
       setPaid(true);
       setShowLoading(true);
-      const hash = await walletClient.writeContract({
+      const accountAddress = address || walletClient?.account?.address;
+      if (!accountAddress) {
+        setPaymentError("?? ??? ???? ?????.");
+        setShowLoading(false);
+        return;
+      }
+      const priceWei = await publicClient.readContract({
+        address: selectedPass.contract_address,
+        abi: blockpassAbi,
+        functionName: "priceWei",
+      });
+      const { request } = await publicClient.simulateContract({
         address: selectedPass.contract_address,
         abi: blockpassAbi,
         functionName: "purchase",
-        value: parseEther(String(selectedPass.price)),
+        value: priceWei,
+        account: accountAddress,
       });
+      const hash = await walletClient.writeContract(request);
       await publicClient.waitForTransactionReceipt({ hash });
       await api.post(`/orders/purchase/${selectedPass.id}`, {
         tx_hash: hash,
@@ -256,11 +282,20 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
     try {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      canvas.width = video.videoWidth || 720;
-      canvas.height = video.videoHeight || 1280;
+      const sourceWidth = video.videoWidth || 720;
+      const sourceHeight = video.videoHeight || 1280;
+      const maxDimension = 1400;
+      const scale = Math.min(1, maxDimension / Math.max(sourceWidth, sourceHeight));
+      canvas.width = Math.round(sourceWidth * scale);
+      canvas.height = Math.round(sourceHeight * scale);
       const ctx = canvas.getContext("2d");
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+      const blob = await new Promise((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", 0.85)
+      );
+      if (!blob) {
+        throw new Error("blob_failed");
+      }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
@@ -270,10 +305,12 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
       }
       setCapturedUrl(URL.createObjectURL(blob));
       const formData = new FormData();
-      formData.append("image", blob, "ocr.png");
+      formData.append("image", blob, "ocr.jpg");
       const response = await api.post("/ocr/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
+        timeout: 0,
       });
+      setOcrDocumentId(response.data?.document_id || response.data?.documentId || null);
       setScanResult(response.data?.result || response.data || null);
       setScanComplete(true);
     } catch (err) {
@@ -281,6 +318,27 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
       setCameraError("스캔에 실패했습니다. 다시 시도해주세요.");
     } finally {
       setScanLoading(false);
+    }
+  };
+
+  const handlePaperComplete = async () => {
+    if (contractCreating) {
+      return;
+    }
+    if (!ocrDocumentId) {
+      setContractError("OCR 문서를 먼저 생성해 주세요.");
+      return;
+    }
+    setContractCreating(true);
+    setContractError("");
+    try {
+      await api.post("/ocr/contract", { document_id: ocrDocumentId });
+      setShowPaperComplete(true);
+    } catch (err) {
+      console.error("OCR 계약 생성 실패:", err);
+      setContractError("회원권 등록에 실패했습니다. 다시 시도해 주세요.");
+    } finally {
+      setContractCreating(false);
     }
   };
 
@@ -496,14 +554,15 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
               >
                 메타마스크 지갑으로 배포하기
               </button>
-              <button
+                            <button
                 className="next-button cta-static"
                 type="button"
-                disabled={!deployReady}
-                onClick={() => setShowPaperComplete(true)}
+                disabled={!deployReady || contractCreating}
+                onClick={handlePaperComplete}
               >
-                완료
+                {contractCreating ? "?? ?..." : "??"}
               </button>
+              {contractError && <p className="wallet-error">{contractError}</p>}
             </div>
           )}
         </section>
