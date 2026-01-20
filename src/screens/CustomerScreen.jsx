@@ -66,6 +66,46 @@ export default function CustomerScreen({ onComplete, onBack }) {
     }
     setIsSaving(true);
     try {
+      const signupDataStr = localStorage.getItem("signupData");
+      if (signupDataStr) {
+        const signupData = JSON.parse(signupDataStr);
+        try {
+          await api.post("/auth/register", {
+            email: signupData.email,
+            password: signupData.password,
+            name: signupData.name,
+            role: "customer",
+          });
+          const formBody = new URLSearchParams();
+          formBody.append("username", signupData.email);
+          formBody.append("password", signupData.password);
+          const loginResponse = await api.post("/auth/login", formBody, {
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+          });
+          localStorage.setItem("access_token", loginResponse.data.access_token);
+          localStorage.setItem("user_role", "customer");
+          localStorage.setItem("user_name", signupData.name);
+        } catch (registerError) {
+          if (registerError.response?.status === 400) {
+            const formBody = new URLSearchParams();
+            formBody.append("username", signupData.email);
+            formBody.append("password", signupData.password);
+            const loginResponse = await api.post("/auth/login", formBody, {
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+            });
+            localStorage.setItem("access_token", loginResponse.data.access_token);
+            localStorage.setItem("user_role", "customer");
+            localStorage.setItem("user_name", signupData.name);
+          } else {
+            throw registerError;
+          }
+        }
+        localStorage.removeItem("signupData");
+      }
       const token = localStorage.getItem("access_token");
       if (!token) {
         throw new Error("로그인이 필요합니다. 다시 로그인해주세요.");

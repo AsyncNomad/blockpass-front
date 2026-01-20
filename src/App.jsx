@@ -96,29 +96,9 @@ export default function App() {
         setSignupData(null);
         setScreen(screens.BUSINESS);
       } else {
-        // 고객은 바로 회원가입 처리 후 지갑 등록 단계로 이동
-        await api.post('/auth/register', {
-          email: payload.email,
-          password: payload.password,
-          name: payload.name,
-          role: role
-        });
-
-        const formBody = new URLSearchParams();
-        formBody.append('username', payload.email);
-        formBody.append('password', payload.password);
-
-        const loginResponse = await api.post('/auth/login', formBody, {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
-        });
-        localStorage.setItem('access_token', loginResponse.data.access_token);
-        localStorage.setItem('user_role', 'customer');
-        localStorage.setItem('user_name', payload.name);
-        
+        // 고객도 지갑 연결 완료 후에만 가입 처리하도록 이동
+        localStorage.setItem("signupData", JSON.stringify(payload));
         setSignupData(null);
-        localStorage.removeItem("signupData");
         setScreen(screens.CUSTOMER);
       }
         

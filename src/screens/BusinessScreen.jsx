@@ -301,6 +301,10 @@ const handleSelectPlace = (place) => {
     if (isSaving) {
       return;
     }
+    if (!walletAddress.trim()) {
+      setWalletError("지갑 연결을 완료해주세요.");
+      return;
+    }
     setIsSaving(true);
     try {
       // localStorage에서 signupData 확인
