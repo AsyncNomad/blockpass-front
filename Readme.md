@@ -106,3 +106,10 @@ sequenceDiagram
     Chain-->>BE: 트랜잭션 해시 (Tx Hash)
     BE-->>FE: 계약 체결 완료
 ```
+
+---
+
+# 참고 링크
+
+Backend: https://github.com/logan0741/blockpass-back
+OCR AI: https://github.com/logan0741/blockpass-AI
