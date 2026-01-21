@@ -6,7 +6,7 @@ import api from "../utils/api";
 
 const steps = [
   {
-    title: "결제에 활용할 가상자산 지갑을 등록해주세요",
+    title: "결제에 활용할 가상자산 지갑을\n등록해주세요",
     button: "완료",
   },
 ];
@@ -138,6 +138,18 @@ export default function CustomerScreen({ onComplete, onBack }) {
   }, [address]);
 
   useEffect(() => {
+    const signupDataStr = localStorage.getItem("signupData");
+    if (signupDataStr) {
+      try {
+        const signupData = JSON.parse(signupDataStr);
+        if (signupData?.name) {
+          setDisplayName(signupData.name);
+          return;
+        }
+      } catch {
+        // ignore parse errors
+      }
+    }
     const storedName = localStorage.getItem("user_name");
     if (storedName) {
       setDisplayName(storedName);

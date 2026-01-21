@@ -23,6 +23,23 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
   const [showComplete, setShowComplete] = useState(false);
   const [savedPass, setSavedPass] = useState(null);
   const [deployError, setDeployError] = useState("");
+
+  const persistPendingPolicy = (extra) => {
+    const pending = {
+      passName,
+      terms,
+      passPriceEth,
+      durationValue,
+      durationUnit,
+      refundRules,
+      ...extra,
+    };
+    localStorage.setItem("businessPolicyPending", JSON.stringify(pending));
+  };
+
+  const clearPendingPolicy = () => {
+    localStorage.removeItem("businessPolicyPending");
+  };
   const saveTriggered = useRef(false);
   const { isConnected } = useAccount();
   const { open } = useWeb3Modal();
@@ -126,6 +143,7 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
       return;
     }
     try {
+      persistPendingPolicy();
       setShowLoading(true);
 
       const durationSeconds = toSeconds(durationValue, durationUnit);
@@ -142,6 +160,7 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
         bytecode: blockpassBytecode,
         args: [parseEther(passPriceEth), BigInt(durationSeconds), thresholds, percents],
       });
+      persistPendingPolicy({ txHash: hash, chainId: publicClient.chain?.id || sepolia.id });
 
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       const contractAddress = receipt.contractAddress;
@@ -173,12 +192,18 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
       });
 
       setShowLoading(false);
-      setSavedPass(response?.data ?? null);
+      const createdPass = response?.data ?? null;
+      setSavedPass(createdPass);
+      if (createdPass) {
+        localStorage.setItem("businessPolicyComplete", "1");
+        localStorage.setItem("lastBusinessPass", JSON.stringify(createdPass));
+      }
       setShowComplete(true);
     } catch (error) {
       console.error("컨트랙트 배포 실패:", error);
       setShowLoading(false);
       setDeployError("배포에 실패했습니다. 다시 시도해주세요.");
+      clearPendingPolicy();
     }
   };
 
@@ -194,9 +219,99 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
       if (onSave) {
         onSave(savedPass);
       }
+      localStorage.removeItem("businessPolicyComplete");
+      localStorage.removeItem("lastBusinessPass");
+      clearPendingPolicy();
     }, 1800);
     return () => clearTimeout(timer);
   }, [showComplete, onSave, savedPass]);
+
+  useEffect(() => {
+    if (showComplete || savedPass) {
+      return;
+    }
+    const completedFlag = localStorage.getItem("businessPolicyComplete");
+    const lastPass = localStorage.getItem("lastBusinessPass");
+    if (!completedFlag || !lastPass) {
+      return;
+    }
+    try {
+      const parsed = JSON.parse(lastPass);
+      setSavedPass(parsed);
+      setShowComplete(true);
+    } catch {
+      localStorage.removeItem("businessPolicyComplete");
+      localStorage.removeItem("lastBusinessPass");
+    }
+  }, [showComplete, savedPass]);
+
+  useEffect(() => {
+    if (showComplete || savedPass) {
+      return;
+    }
+    const pendingRaw = localStorage.getItem("businessPolicyPending");
+    if (!pendingRaw) {
+      return;
+    }
+    let pending;
+    try {
+      pending = JSON.parse(pendingRaw);
+    } catch {
+      clearPendingPolicy();
+      return;
+    }
+    if (!pending?.txHash || !publicClient) {
+      return;
+    }
+    const resume = async () => {
+      try {
+        setDeployError("");
+        setShowLoading(true);
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash: pending.txHash,
+        });
+        const contractAddress = receipt.contractAddress;
+        if (!contractAddress) {
+          throw new Error("컨트랙트 주소를 확인할 수 없습니다.");
+        }
+        let durationMinutes = parseInt(pending.durationValue, 10);
+        if (pending.durationUnit === "일") {
+          durationMinutes = durationMinutes * 24 * 60;
+        } else if (pending.durationUnit === "시간") {
+          durationMinutes = durationMinutes * 60;
+        }
+        const durationInDays = Math.max(1, Math.ceil(durationMinutes / (24 * 60)));
+        const response = await api.post("/business/passes", {
+          title: pending.passName,
+          terms: pending.terms,
+          price: parseFloat(pending.passPriceEth),
+          duration_days: durationInDays,
+          duration_minutes: durationMinutes,
+          refund_rules: (pending.refundRules || []).map((rule) => ({
+            period: Number(rule.period),
+            unit: rule.unit,
+            refund_percent: Number(rule.refund),
+          })),
+          contract_address: contractAddress,
+          contract_chain: String(pending.chainId || sepolia.id),
+        });
+        setShowLoading(false);
+        const createdPass = response?.data ?? null;
+        setSavedPass(createdPass);
+        if (createdPass) {
+          localStorage.setItem("businessPolicyComplete", "1");
+          localStorage.setItem("lastBusinessPass", JSON.stringify(createdPass));
+        }
+        setShowComplete(true);
+      } catch (error) {
+        console.error("배포 복구 실패:", error);
+        setShowLoading(false);
+        setDeployError("배포 복구에 실패했습니다. 다시 시도해주세요.");
+        clearPendingPolicy();
+      }
+    };
+    resume();
+  }, [publicClient, showComplete, savedPass]);
 
   if (showLoading) {
     return (

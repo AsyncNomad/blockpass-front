@@ -60,6 +60,15 @@ export default function App() {
     }
     return screens.LANDING;
   });
+  const [authDocked, setAuthDocked] = useState(() => {
+    try {
+      const nav = performance.getEntriesByType?.("navigation");
+      const isReload = nav && nav[0]?.type === "reload";
+      return !(isReload && localStorage.getItem("currentScreen") === screens.AUTH);
+    } catch {
+      return true;
+    }
+  });
   const [currentDocId, setCurrentDocId] = useState(null);
   const [signupData, setSignupData] = useState(() => {
     try {
@@ -74,6 +83,7 @@ export default function App() {
   const [resumeTicket, setResumeTicket] = useState(null);
   const [resumeExpiresAt, setResumeExpiresAt] = useState(0);
   const [resumeExpanded, setResumeExpanded] = useState(false);
+  const [ticketsRefreshKey, setTicketsRefreshKey] = useState(0);
   const [businessTermsPass, setBusinessTermsPass] = useState(null);
   const [businessPasses, setBusinessPasses] = useState([]);
 
@@ -156,6 +166,7 @@ export default function App() {
     setResumeTicket(null);
     setResumeExpiresAt(0);
     setResumeExpanded(false);
+    setTicketsRefreshKey((prev) => prev + 1);
     setScreen(screens.CUSTOMER_TICKETS);
   };
 
@@ -163,79 +174,74 @@ export default function App() {
     localStorage.setItem("currentScreen", screen);
   }, [screen]);
 
+  useEffect(() => {
+    if (screen !== screens.AUTH) {
+      setAuthDocked(false);
+      return;
+    }
+    let isReload = false;
+    try {
+      const nav = performance.getEntriesByType?.("navigation");
+      isReload = !!(nav && nav[0]?.type === "reload");
+    } catch {
+      isReload = false;
+    }
+    if (isReload) {
+      setAuthDocked(false);
+      const timer = setTimeout(() => setAuthDocked(true), 2200);
+      return () => clearTimeout(timer);
+    }
+    setAuthDocked(true);
+  }, [screen]);
+
   return (
-    <div className={`app ${screen === screens.AUTH ? "logo-docked" : ""}`}>
+    <div className={`app ${screen === screens.AUTH && authDocked ? "logo-docked" : ""}`}>
       <main className="shell">
         {(screen === screens.LANDING || screen === screens.AUTH) && (
           <div className="logo-wrap" aria-hidden="true">
-            <svg
-              className="logo-draw"
-              viewBox="0 0 360 220"
-              role="img"
-              aria-label="Blockpass 로고"
-            >
+            <svg className="logo-draw" viewBox="0 0 380 180" role="img" aria-label="Blockpass 로고">
               <g className="logo-strokes">
                 <path
                   className="logo-stroke"
                   style={{ "--delay": "0s" }}
-                  d="M30 88 90 48 150 88 90 128z"
+                  d="M30 65 L90 35 L150 65 L150 135 L90 165 L30 135 Z"
                 />
                 <path
                   className="logo-stroke"
-                  style={{ "--delay": "0.08s" }}
-                  d="M90 48v80"
+                  style={{ "--delay": "0.3s" }}
+                  d="M30 65 L90 95 L150 65 M90 95 L90 165"
                 />
                 <path
                   className="logo-stroke"
-                  style={{ "--delay": "0.16s" }}
-                  d="M150 88v80"
+                  style={{ "--delay": "0.5s" }}
+                  d="M150 65 L210 35 L270 65 L270 135 L210 165 L150 135"
                 />
                 <path
                   className="logo-stroke"
-                  style={{ "--delay": "0.24s" }}
-                  d="M30 88v80l60 40 60-40"
+                  style={{ "--delay": "0.7s" }}
+                  d="M150 65 L210 95 L270 65 M210 95 L210 165"
                 />
                 <path
                   className="logo-stroke"
-                  style={{ "--delay": "0.32s" }}
-                  d="M150 88 210 48 270 88 210 128z"
+                  style={{ "--delay": "0.9s" }}
+                  d="M270 65 L340 65 L340 85 A 15 15 0 0 0 340 115 L340 135 L270 135"
+                />
+                <path
+                  className="logo-stroke logo-dashed"
+                  style={{ "--delay": "1.2s" }}
+                  d="M270 65 L270 135"
                 />
                 <path
                   className="logo-stroke"
-                  style={{ "--delay": "0.4s" }}
-                  d="M210 48v80"
-                />
-                <path
-                  className="logo-stroke"
-                  style={{ "--delay": "0.48s" }}
-                  d="M270 88v80"
-                />
-                <path
-                  className="logo-stroke"
-                  style={{ "--delay": "0.56s" }}
-                  d="M150 88v80l60 40 60-40"
-                />
-                <path
-                  className="logo-stroke"
-                  style={{ "--delay": "0.64s" }}
-                  d="M270 70h40a22 22 0 0 1 22 22v44a22 22 0 0 1-22 22h-40"
-                />
-                <path
-                  className="logo-stroke"
-                  style={{ "--delay": "0.72s" }}
-                  d="M270 92h18m-18 18h18m-18 18h18"
-                />
-                <path
-                  className="logo-stroke"
-                  style={{ "--delay": "0.8s" }}
-                  d="M220 122l16 16 26-28"
+                  style={{ "--delay": "1.4s" }}
+                  d="M230 105 L245 120 L265 85"
                 />
               </g>
               <text
                 className="logo-stroke logo-text"
-                style={{ "--delay": "0.95s" }}
-                x="180"
-                y="205"
+                style={{ "--delay": "1.6s" }}
+                x="190"
+                y="175"
                 textAnchor="middle"
               >
                 BLOCKPASS
@@ -314,6 +320,7 @@ export default function App() {
             <BusinessPolicyScreen
               onSave={(newPass) => {
                 setBusinessPasses((prev) => [newPass, ...prev]);
+                localStorage.setItem("currentScreen", screens.BUSINESS_MAIN);
                 setScreen(screens.BUSINESS_MAIN);
               }}
               onCancel={() => setScreen(screens.BUSINESS_MAIN)}
@@ -355,6 +362,7 @@ export default function App() {
               onTickets={goCustomerTickets}
               onMain={() => setScreen(screens.CUSTOMER_MAIN)}
               onMy={() => setScreen(screens.CUSTOMER_MY)}
+              refreshKey={ticketsRefreshKey}
               resumeTicket={resumeTicket}
               resumeExpiresAt={resumeExpiresAt}
               resumeExpanded={resumeExpanded}

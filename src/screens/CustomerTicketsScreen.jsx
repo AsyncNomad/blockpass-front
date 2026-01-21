@@ -81,6 +81,7 @@ export default function CustomerTicketsScreen({
   onTerms,
   onRefund,
   onBankruptcy,
+  refreshKey,
   resumeTicket,
   resumeExpiresAt,
   resumeExpanded,
@@ -150,23 +151,26 @@ export default function CustomerTicketsScreen({
       try {
         setLoading(true);
         const response = await api.get("/orders/my");
-        const items = (response.data || []).map((row) => {
-          const startAt = row.start_at;
-          const endAt = row.end_at;
-          return {
-            id: row.id,
-            passId: row.pass_id,
-            title: row.title,
-            price: row.price,
-            terms: row.terms,
-            contract_address: row.contract_address,
-            contract_chain: row.contract_chain,
-            refund_rules: row.refund_rules || [],
-            startAt,
-            endAt,
-            durationMinutes: row.duration_minutes,
-          };
-        });
+        const items = (response.data || [])
+          .map((row) => {
+            const startAt = row.start_at;
+            const endAt = row.end_at;
+            return {
+              id: row.id,
+              passId: row.pass_id,
+              title: row.title,
+              price: row.price,
+              terms: row.terms,
+              contract_address: row.contract_address,
+              contract_chain: row.contract_chain,
+              refund_rules: row.refund_rules || [],
+              status: row.status,
+              startAt,
+              endAt,
+              durationMinutes: row.duration_minutes,
+            };
+          })
+          .filter((row) => !row.status || row.status === "active" || row.status === "expired");
         setTickets(items);
       } catch (err) {
         console.error("이용권 조회 실패:", err);
@@ -176,7 +180,7 @@ export default function CustomerTicketsScreen({
       }
     };
     fetchTickets();
-  }, []);
+  }, [refreshKey]);
 
   useEffect(() => {
     if (!resumeTicket) {
