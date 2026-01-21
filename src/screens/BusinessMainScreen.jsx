@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import BusinessNav from "./BusinessNav.jsx";
+import healthLogo from "../../assets/healthlogo.png";
 import api from "../utils/api";
 
 export default function BusinessMainScreen({
@@ -68,6 +69,13 @@ export default function BusinessMainScreen({
                 type="button"
                 onClick={() => onTerms?.(pass)}
               >
+                <div className="card-image">
+                  <img
+                    className="card-image-img"
+                    src={healthLogo}
+                    alt="이용권 이미지"
+                  />
+                </div>
                 <div className="main-card-title">{pass.title}</div>
                 <div className="main-card-sub">{pass.price} ETH</div>
               </button>

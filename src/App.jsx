@@ -406,7 +406,10 @@ export default function App() {
               onTickets={() => setScreen(screens.CUSTOMER_TICKETS)}
               onMain={() => setScreen(screens.CUSTOMER_MAIN)}
               onMy={() => setScreen(screens.CUSTOMER_MY)}
-              onComplete={() => setScreen(screens.CUSTOMER_TICKETS)}
+              onComplete={() => {
+                setTicketsRefreshKey((prev) => prev + 1);
+                setScreen(screens.CUSTOMER_MAIN);
+              }}
               onBack={() => setScreen(screens.CUSTOMER_MAIN)}
             />
           )}

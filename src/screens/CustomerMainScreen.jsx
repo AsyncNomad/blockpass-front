@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import MainNav from "./MainNav.jsx";
+import healthLogo from "../../assets/healthlogo.png";
 import api from "../utils/api";
 
 export default function CustomerMainScreen({ onTickets, onMain, onMy, onAddPass }) {
@@ -48,15 +49,21 @@ export default function CustomerMainScreen({ onTickets, onMain, onMy, onAddPass 
           {!loading &&
             !error &&
             facilities.map((item) => (
-            <div className="main-card" key={item.id || item.name}>
-              <div className="card-image" aria-hidden="true" />
-              <div className="main-card-title">{item.name}</div>
-              <div className="main-card-sub">
-                <span className="pin" aria-hidden="true" />
-                <span className="num">{item.price_display || "가격 준비중"}</span>
+              <div className="main-card" key={item.id || item.name}>
+                <div className="card-image">
+                  <img
+                    className="card-image-img"
+                    src={healthLogo}
+                    alt="이용권 이미지"
+                  />
+                </div>
+                <div className="main-card-title">{item.name}</div>
+                <div className="main-card-sub">
+                  <span className="pin" aria-hidden="true" />
+                  <span className="num">{item.price_display || "가격 준비중"}</span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       </section>
       <button className="policy-cta" type="button" onClick={onAddPass}>

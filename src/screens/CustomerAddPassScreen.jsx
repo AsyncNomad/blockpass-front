@@ -231,6 +231,7 @@ export default function CustomerAddPassScreen({ onComplete, onBack }) {
         tx_hash: hash,
         chain: "sepolia",
       });
+      localStorage.setItem("currentScreen", "customer_main");
       setShowLoading(false);
       setShowPaidScreen(true);
     } catch (err) {

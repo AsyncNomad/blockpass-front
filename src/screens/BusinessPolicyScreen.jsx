@@ -41,6 +41,7 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
     localStorage.removeItem("businessPolicyPending");
   };
   const saveTriggered = useRef(false);
+  const postTriggered = useRef(false);
   const { isConnected } = useAccount();
   const { open } = useWeb3Modal();
   const chainId = useChainId();
@@ -176,6 +177,12 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
       }
       const durationInDays = Math.max(1, Math.ceil(durationMinutes / (24 * 60)));
 
+      if (postTriggered.current) {
+        return;
+      }
+      postTriggered.current = true;
+      localStorage.setItem("businessPolicyPosted", hash);
+
       const response = await api.post("/business/passes", {
         title: passName,
         terms,
@@ -204,6 +211,8 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
       setShowLoading(false);
       setDeployError("배포에 실패했습니다. 다시 시도해주세요.");
       clearPendingPolicy();
+      localStorage.removeItem("businessPolicyPosted");
+      postTriggered.current = false;
     }
   };
 
@@ -221,13 +230,14 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
       }
       localStorage.removeItem("businessPolicyComplete");
       localStorage.removeItem("lastBusinessPass");
+      localStorage.removeItem("businessPolicyPosted");
       clearPendingPolicy();
     }, 1800);
     return () => clearTimeout(timer);
   }, [showComplete, onSave, savedPass]);
 
   useEffect(() => {
-    if (showComplete || savedPass) {
+    if (showComplete || savedPass || postTriggered.current) {
       return;
     }
     const completedFlag = localStorage.getItem("businessPolicyComplete");
@@ -263,6 +273,10 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
     if (!pending?.txHash || !publicClient) {
       return;
     }
+    const alreadyPosted = localStorage.getItem("businessPolicyPosted");
+    if (alreadyPosted && alreadyPosted === pending.txHash) {
+      return;
+    }
     const resume = async () => {
       try {
         setDeployError("");
@@ -281,6 +295,12 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
           durationMinutes = durationMinutes * 60;
         }
         const durationInDays = Math.max(1, Math.ceil(durationMinutes / (24 * 60)));
+        if (postTriggered.current) {
+          return;
+        }
+        postTriggered.current = true;
+        localStorage.setItem("businessPolicyPosted", pending.txHash);
+
         const response = await api.post("/business/passes", {
           title: pending.passName,
           terms: pending.terms,
@@ -308,6 +328,8 @@ export default function BusinessPolicyScreen({ onSave, onCancel }) {
         setShowLoading(false);
         setDeployError("배포 복구에 실패했습니다. 다시 시도해주세요.");
         clearPendingPolicy();
+        localStorage.removeItem("businessPolicyPosted");
+        postTriggered.current = false;
       }
     };
     resume();
